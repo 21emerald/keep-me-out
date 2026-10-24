@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Keep Me Out</string>
+
+    <string name="accessibility_service_label">Keep Me Out 锁屏</string>
+    <string name="accessibility_description">在预定时间执行系统的“锁定屏幕”操作。该服务不会读取屏幕内容。</string>
+    <string name="device_admin_label">Keep Me Out 设备管理器</string>
+    <string name="device_admin_description">作为无障碍锁屏不可用时的兜底，仅使用“强制锁屏”能力。</string>
+
+    <string name="main_title">Keep Me Out</string>
+    <string name="main_subtitle">在设定时间内把手机锁起来。</string>
+
+    <string name="section_manual">立即锁屏</string>
+    <string name="manual_minutes_hint">锁屏时长</string>
+    <string name="minutes_suffix">分钟</string>
+    <string name="start_manual">开始</string>
+
+    <string name="section_settings">锁屏参数</string>
+    <string name="pre_lock_label">进入锁屏前倒计时</string>
+    <string name="grace_label">解锁后允许使用</string>
+    <string name="seconds_suffix">秒</string>
+    <string name="save_settings">保存设置</string>
+
+    <string name="section_language">语言</string>
+    <string name="language_current">语言：%1$s</string>
+    <string name="language_select_title">选择语言</string>
+    <string name="language_chinese">中文</string>
+    <string name="language_english">English</string>
+
+    <string name="date_month_day_pattern">M月d日</string>
+    <string name="date_full_pattern">yyyy年M月d日</string>
+    <string name="tomorrow">明天 %1$s</string>
+    <string name="yesterday">昨天 %1$s</string>
+    <string name="day_separator">、</string>
+    <string name="schedule_time_range_next_day">%1$s – 次日 %2$s</string>
+
+    <string name="section_permissions">使用前设置</string>
+    <string name="section_tasks">定时任务</string>
+    <string name="add_schedule">添加任务</string>
+    <string name="no_tasks">还没有定时任务。</string>
+    <string name="footer_note">结束时间到达后应用只停止重新锁屏，不会自动解锁手机；正常解锁即可。</string>
+
+    <string name="status_idle">当前未锁屏</string>
+    <string name="status_warning">即将锁屏</string>
+    <string name="status_locked">锁屏中</string>
+    <string name="status_grace">宽限使用中</string>
+    <string name="status_error">锁屏状态异常</string>
+    <string name="cancel_this_warning">取消本次锁屏</string>
+    <string name="exit_lock_session">退出本次锁屏</string>
+    <string name="next_lock_none">没有启用的定时任务</string>
+    <string name="next_lock_at">下次锁屏：%1$s</string>
+    <string name="lock_at">%1$s 开始锁屏</string>
+    <string name="lock_until">锁屏至 %1$s</string>
+    <string name="grace_detail">%1$d 秒后重新锁屏 · 锁屏至 %2$s</string>
+    <string name="warning_detail">%1$d 秒后锁屏 · %2$s 开始</string>
+    <string name="locked_detail">每次解锁可用 %1$d 秒 · 至 %2$s</string>
+
+    <string name="permission_notification">通知</string>
+    <string name="permission_overlay">悬浮窗</string>
+    <string name="permission_accessibility">无障碍锁屏（推荐）</string>
+    <string name="permission_device_admin">设备管理器（兜底）</string>
+    <string name="permission_exact_alarm">精确闹钟</string>
+    <string name="permission_battery">电池优化</string>
+    <string name="permission_secure">安全锁屏</string>
+    <string name="permission_on">已开启</string>
+    <string name="permission_off">未开启</string>
+    <string name="permission_ok">正常</string>
+    <string name="permission_problem">异常</string>
+    <string name="permission_open">去开启</string>
+    <string name="permission_fix">去处理</string>
+    <string name="permission_settings">设置</string>
+    <string name="device_admin_explanation">作为无障碍锁屏不可用时的兜底，仅使用强制锁屏能力。启用后系统可能要求每次输入 PIN/图案/密码。</string>
+    <string name="permission_required">缺少必要设置：%1$s</string>
+    <string name="permission_configured">必要设置已完成。</string>
+    <string name="settings_saved">设置已保存</string>
+    <string name="invalid_seconds">秒数必须是 0 到 300</string>
+    <string name="invalid_minutes">分钟数必须是 1 到 1440</string>
+    <string name="need_permissions">请先完成“使用前设置”中的必要项目</string>
+    <string name="session_busy">当前已有锁屏或倒计时，暂时不能开始新的锁屏</string>
+    <string name="notification_channel_name">锁屏状态</string>
+    <string name="notification_channel_description">显示下一次锁屏时间和当前锁屏状态</string>
+    <string name="notification_cancel">取消本次</string>
+    <string name="notification_tap">打开 Keep Me Out</string>
+    <string name="notification_idle_title">Keep Me Out</string>
+    <string name="notification_idle_text">下次锁屏：%1$s</string>
+    <string name="notification_no_tasks">没有启用的定时任务</string>
+    <string name="notification_warning_title">即将锁屏</string>
+    <string name="notification_warning_text">%1$s 开始锁屏</string>
+    <string name="notification_locked_title">锁屏中</string>
+    <string name="notification_locked_text">锁屏至 %1$s</string>
+    <string name="notification_grace_title">宽限使用中</string>
+    <string name="notification_grace_text">%1$d 秒后重新锁屏</string>
+    <string name="notification_error_title">锁屏失败</string>
+    <string name="notification_error_text">请检查无障碍或设备管理器权限</string>
+    <string name="overlay_warning_title">%1$d 秒后锁屏</string>
+    <string name="overlay_warning_subtitle">%1$s 开始</string>
+    <string name="overlay_grace_title">%1$d 秒后重新锁屏</string>
+    <string name="overlay_grace_subtitle">本次剩余 %1$s</string>
+
+    <string name="edit_title_new">新建任务</string>
+    <string name="edit_title_existing">编辑任务</string>
+    <string name="task_type">任务类型</string>
+    <string name="type_weekly">每周</string>
+    <string name="type_once">一次性</string>
+    <string name="repeat_days">重复日</string>
+    <string name="repeat_days_hint">全部选中就是每天。</string>
+    <string name="date_label">日期</string>
+    <string name="start_time">开始时间</string>
+    <string name="end_time">结束时间</string>
+    <string name="time_hint">结束时间早于开始时间表示次日结束；两者相同无效。</string>
+    <string name="save_schedule">保存任务</string>
+    <string name="delete_schedule">删除任务</string>
+    <string name="delete_schedule_confirm">确定删除这个任务？</string>
+    <string name="need_one_day">至少选择一个重复日</string>
+    <string name="invalid_time_range">开始时间和结束时间不能相同</string>
+    <string name="once_in_past">一次性任务的开始时间必须晚于现在</string>
+    <string name="schedule_enabled">已启用</string>
+    <string name="schedule_disabled">已停用</string>
+    <string name="schedule_daily">每天</string>
+    <string name="schedule_weekdays">%1$s</string>
+    <string name="schedule_time_range">%1$s – %2$s</string>
+    <string name="schedule_once_date">%1$s</string>
+    <string name="edit">编辑</string>
+    <string name="task_saved">任务已保存</string>
+    <string name="task_saved_disabled">任务已保存；必要权限尚未完成，任务当前为停用状态</string>
+    <string name="task_deleted">任务已删除</string>
+    <string name="cancel">取消</string>
+    <string name="delete">删除</string>
+    <string name="open_settings_failed">无法打开系统设置，请手动到应用设置中操作</string>
+    <string name="service_start_failed">无法启动锁屏服务，请稍后重试</string>
+    <string name="accessibility_settings_hint">请在系统设置中找到“Keep Me Out 锁屏”并开启。Android 13+ 若提示受限设置，请先在应用详情页右上角允许受限设置。</string>
+</resources>

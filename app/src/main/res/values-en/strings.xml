@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Keep Me Out</string>
+
+    <string name="accessibility_service_label">Keep Me Out Screen Lock</string>
+    <string name="accessibility_description">Performs the system lock-screen action at the configured time. It does not read screen content.</string>
+    <string name="device_admin_label">Keep Me Out Device Admin</string>
+    <string name="device_admin_description">Fallback when the accessibility lock is unavailable. It only uses the force-lock policy.</string>
+
+    <string name="main_title">Keep Me Out</string>
+    <string name="main_subtitle">Lock your phone for the time you choose.</string>
+
+    <string name="section_manual">Lock now</string>
+    <string name="manual_minutes_hint">Lock duration</string>
+    <string name="minutes_suffix">minutes</string>
+    <string name="start_manual">Start</string>
+
+    <string name="section_settings">Lock settings</string>
+    <string name="pre_lock_label">Countdown before locking</string>
+    <string name="grace_label">Allowed use after unlock</string>
+    <string name="seconds_suffix">seconds</string>
+    <string name="save_settings">Save settings</string>
+
+    <string name="section_language">Language</string>
+    <string name="language_current">Language: %1$s</string>
+    <string name="language_select_title">Choose language</string>
+    <string name="language_chinese">Chinese</string>
+    <string name="language_english">English</string>
+
+    <string name="date_month_day_pattern">MMM d</string>
+    <string name="date_full_pattern">MMM d, yyyy</string>
+    <string name="tomorrow">Tomorrow %1$s</string>
+    <string name="yesterday">Yesterday %1$s</string>
+    <string name="day_separator">, </string>
+    <string name="schedule_time_range_next_day">%1$s – next day %2$s</string>
+
+    <string name="section_permissions">Setup</string>
+    <string name="section_tasks">Scheduled locks</string>
+    <string name="add_schedule">Add schedule</string>
+    <string name="no_tasks">No scheduled tasks yet.</string>
+    <string name="footer_note">When the end time is reached, the app stops re-locking but does not unlock the phone automatically. Unlock it normally.</string>
+
+    <string name="status_idle">Not locked</string>
+    <string name="status_warning">Locking soon</string>
+    <string name="status_locked">Locked</string>
+    <string name="status_grace">Grace period</string>
+    <string name="status_error">Lock error</string>
+    <string name="cancel_this_warning">Cancel this lock</string>
+    <string name="exit_lock_session">Exit this lock</string>
+    <string name="next_lock_none">No enabled schedules</string>
+    <string name="next_lock_at">Next lock: %1$s</string>
+    <string name="lock_at">Locks at %1$s</string>
+    <string name="lock_until">Locked until %1$s</string>
+    <string name="grace_detail">%1$d sec until re-lock · locked until %2$s</string>
+    <string name="warning_detail">Locking in %1$d sec · starts at %2$s</string>
+    <string name="locked_detail">%1$d sec per unlock · until %2$s</string>
+
+    <string name="permission_notification">Notifications</string>
+    <string name="permission_overlay">Display over other apps</string>
+    <string name="permission_accessibility">Accessibility lock (recommended)</string>
+    <string name="permission_device_admin">Device admin (fallback)</string>
+    <string name="permission_exact_alarm">Exact alarms</string>
+    <string name="permission_battery">Battery optimization</string>
+    <string name="permission_secure">Secure lock screen</string>
+    <string name="permission_on">On</string>
+    <string name="permission_off">Off</string>
+    <string name="permission_ok">OK</string>
+    <string name="permission_problem">Problem</string>
+    <string name="permission_open">Enable</string>
+    <string name="permission_fix">Fix</string>
+    <string name="permission_settings">Settings</string>
+    <string name="device_admin_explanation">Fallback when the accessibility lock is unavailable. Enabling it can require a PIN, pattern, or password on every unlock.</string>
+    <string name="permission_required">Missing required settings: %1$s</string>
+    <string name="permission_configured">Setup complete.</string>
+    <string name="settings_saved">Settings saved</string>
+    <string name="invalid_seconds">Seconds must be between 0 and 300</string>
+    <string name="invalid_minutes">Minutes must be between 1 and 1440</string>
+    <string name="need_permissions">Complete the required items in Setup first</string>
+    <string name="session_busy">A lock or countdown is already active. You cannot start another one right now.</string>
+
+    <string name="notification_channel_name">Lock status</string>
+    <string name="notification_channel_description">Shows the next lock time and current lock status</string>
+    <string name="notification_cancel">Cancel</string>
+    <string name="notification_tap">Open Keep Me Out</string>
+    <string name="notification_idle_title">Keep Me Out</string>
+    <string name="notification_idle_text">Next lock: %1$s</string>
+    <string name="notification_no_tasks">No enabled schedules</string>
+    <string name="notification_warning_title">Locking soon</string>
+    <string name="notification_warning_text">Locks at %1$s</string>
+    <string name="notification_locked_title">Locked</string>
+    <string name="notification_locked_text">Locked until %1$s</string>
+    <string name="notification_grace_title">Grace period</string>
+    <string name="notification_grace_text">Re-locks in %1$d sec</string>
+    <string name="notification_error_title">Lock failed</string>
+    <string name="notification_error_text">Check the accessibility or device admin permission</string>
+    <string name="overlay_warning_title">Locking in %1$d sec</string>
+    <string name="overlay_warning_subtitle">Starts at %1$s</string>
+    <string name="overlay_grace_title">Re-locking in %1$d sec</string>
+    <string name="overlay_grace_subtitle">%1$s left in this lock</string>
+
+    <string name="edit_title_new">New schedule</string>
+    <string name="edit_title_existing">Edit schedule</string>
+    <string name="task_type">Schedule type</string>
+    <string name="type_weekly">Weekly</string>
+    <string name="type_once">One-time</string>
+    <string name="repeat_days">Repeat on</string>
+    <string name="repeat_days_hint">Select all seven for every day.</string>
+    <string name="date_label">Date</string>
+    <string name="start_time">Start time</string>
+    <string name="end_time">End time</string>
+    <string name="time_hint">If the end time is earlier than the start time, it ends the next day. The two times cannot be equal.</string>
+    <string name="save_schedule">Save schedule</string>
+    <string name="delete_schedule">Delete schedule</string>
+    <string name="delete_schedule_confirm">Delete this schedule?</string>
+    <string name="need_one_day">Select at least one repeat day</string>
+    <string name="invalid_time_range">Start and end times cannot be the same</string>
+    <string name="once_in_past">A one-time schedule must start in the future</string>
+    <string name="schedule_enabled">Enabled</string>
+    <string name="schedule_disabled">Disabled</string>
+    <string name="schedule_daily">Every day</string>
+    <string name="schedule_weekdays">%1$s</string>
+    <string name="schedule_time_range">%1$s – %2$s</string>
+    <string name="schedule_once_date">%1$s</string>
+    <string name="edit">Edit</string>
+    <string name="task_saved">Schedule saved</string>
+    <string name="task_saved_disabled">Schedule saved; required permissions are incomplete, so it is disabled</string>
+    <string name="task_deleted">Schedule deleted</string>
+    <string name="cancel">Cancel</string>
+    <string name="delete">Delete</string>
+    <string name="open_settings_failed">Could not open system settings. Open the app settings manually.</string>
+    <string name="service_start_failed">Could not start the lock service. Try again.</string>
+    <string name="accessibility_settings_hint">Find Keep Me Out Screen Lock in Accessibility and enable it. On Android 13+, if restricted settings appears, first allow restricted settings from the app info menu.</string>
+</resources>
