@@ -10,6 +10,7 @@ import android.graphics.drawable.Icon
 import android.os.Build
 import com.me.keepmeout.MainActivity
 import com.me.keepmeout.R
+import com.me.keepmeout.WhitelistHomeActivity
 import com.me.keepmeout.service.LockService
 import com.me.keepmeout.service.ServiceActions
 import com.me.keepmeout.util.TimeText
@@ -59,6 +60,7 @@ class NotificationController(private val service: Service) {
             .setWhen(activeUntilMillis)
             .setUsesChronometer(true)
             .setChronometerCountDown(true)
+        addWhitelistAction(builder)
         post(builder.build())
     }
 
@@ -71,6 +73,40 @@ class NotificationController(private val service: Service) {
             .setWhen(graceEndWallMillis)
             .setUsesChronometer(true)
             .setChronometerCountDown(true)
+        addWhitelistAction(builder)
+        post(builder.build())
+    }
+
+    fun showWhitelist(
+        whitelistEndWallMillis: Long,
+        remainingMillis: Long,
+        activeUntilMillis: Long,
+    ) {
+        val builder = baseBuilder(
+            service.getString(R.string.notification_whitelist_title),
+            service.getString(
+                R.string.notification_whitelist_text,
+                TimeText.remaining(remainingMillis),
+                TimeText.full(service, activeUntilMillis),
+            ),
+        )
+        builder.setShowWhen(true)
+            .setWhen(whitelistEndWallMillis)
+            .setUsesChronometer(true)
+            .setChronometerCountDown(true)
+        addWhitelistAction(builder)
+        post(builder.build())
+    }
+
+    fun showWhitelistUnlimited(activeUntilMillis: Long) {
+        val builder = baseBuilder(
+            service.getString(R.string.notification_whitelist_title),
+            service.getString(
+                R.string.notification_whitelist_unlimited_text,
+                TimeText.full(service, activeUntilMillis),
+            ),
+        )
+        addWhitelistAction(builder)
         post(builder.build())
     }
 
@@ -146,6 +182,33 @@ class NotificationController(private val service: Service) {
         return PendingIntent.getForegroundService(
             service,
             3002,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    private fun addWhitelistAction(builder: Notification.Builder) {
+        builder.addAction(
+            Notification.Action.Builder(
+                Icon.createWithResource(service, R.drawable.ic_notification),
+                service.getString(R.string.notification_open_whitelist),
+                whitelistPendingIntent(),
+            ).build()
+        )
+    }
+
+    private fun whitelistPendingIntent(): PendingIntent {
+        val intent = Intent(service, WhitelistHomeActivity::class.java).apply {
+            addFlags(
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP
+            )
+            putExtra(WhitelistHomeActivity.EXTRA_EXPLICIT, true)
+        }
+        return PendingIntent.getActivity(
+            service,
+            3003,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )

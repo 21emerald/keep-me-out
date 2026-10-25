@@ -3,7 +3,7 @@
     <string name="app_name">Keep Me Out</string>
 
     <string name="accessibility_service_label">Keep Me Out 锁屏</string>
-    <string name="accessibility_description">在预定时间执行系统的“锁定屏幕”操作。该服务不会读取屏幕内容。</string>
+    <string name="accessibility_description">在预定时间执行系统的“锁定屏幕”操作，并识别当前前台应用以执行白名单。不会读取屏幕内容。</string>
     <string name="device_admin_label">Keep Me Out 设备管理器</string>
     <string name="device_admin_description">作为无障碍锁屏不可用时的兜底，仅使用“强制锁屏”能力。</string>
 
@@ -20,6 +20,26 @@
     <string name="grace_label">解锁后允许使用</string>
     <string name="seconds_suffix">秒</string>
     <string name="save_settings">保存设置</string>
+
+    <string name="section_whitelist">紧急白名单</string>
+    <string name="whitelist_apps_label">应用白名单</string>
+    <string name="whitelist_pick_apps">应用列表</string>
+    <string name="whitelist_limit_label">限制总时长</string>
+    <string name="whitelist_minutes_label">白名单时长</string>
+    <string name="whitelist_limit_note">勾选：整个锁屏会话累计；不勾选：每次解锁重新计时。离开应用后再进入不会重置。</string>
+    <string name="whitelist_frozen_note">锁屏开始后，白名单应用和时长将锁定，不能修改。</string>
+    <string name="whitelist_select_title">选择白名单应用</string>
+    <string name="whitelist_search_hint">搜索应用</string>
+    <string name="whitelist_no_matches">没有匹配的应用</string>
+    <string name="whitelist_save">保存白名单</string>
+    <string name="whitelist_empty">未选择白名单应用</string>
+    <string name="whitelist_saved">白名单已保存</string>
+    <string name="whitelist_home_title">白名单应用</string>
+    <string name="whitelist_home_subtitle">锁屏中，仅显示白名单应用</string>
+    <string name="whitelist_home_empty">还没有选择白名单应用</string>
+    <string name="whitelist_home_launch_failed">无法打开这个应用</string>
+    <string name="invalid_whitelist_duration">白名单时长必须是 1 秒到 24 小时</string>
+    <string name="debug_exit_lock">调试：立即退出本次锁屏</string>
 
     <string name="section_language">语言</string>
     <string name="language_current">语言：%1$s</string>
@@ -44,6 +64,9 @@
     <string name="status_warning">即将锁屏</string>
     <string name="status_locked">锁屏中</string>
     <string name="status_grace">宽限使用中</string>
+    <string name="status_whitelist">白名单使用中</string>
+    <string name="whitelist_detail">剩余 %1$s · 仅允许白名单应用 · 至 %2$s</string>
+    <string name="whitelist_unlimited_detail">不限时 · 仅允许白名单应用 · 至 %1$s</string>
     <string name="status_error">锁屏状态异常</string>
     <string name="cancel_this_warning">取消本次锁屏</string>
     <string name="exit_lock_session">退出本次锁屏</string>
@@ -80,6 +103,7 @@
     <string name="notification_channel_name">锁屏状态</string>
     <string name="notification_channel_description">显示下一次锁屏时间和当前锁屏状态</string>
     <string name="notification_cancel">取消本次</string>
+    <string name="notification_open_whitelist">白名单应用</string>
     <string name="notification_tap">打开 Keep Me Out</string>
     <string name="notification_idle_title">Keep Me Out</string>
     <string name="notification_idle_text">下次锁屏：%1$s</string>
@@ -90,12 +114,18 @@
     <string name="notification_locked_text">锁屏至 %1$s</string>
     <string name="notification_grace_title">宽限使用中</string>
     <string name="notification_grace_text">%1$d 秒后重新锁屏</string>
+    <string name="notification_whitelist_title">白名单使用中</string>
+    <string name="notification_whitelist_text">剩余 %1$s · 仅允许白名单应用 · 至 %2$s</string>
+    <string name="notification_whitelist_unlimited_text">仅允许白名单应用 · 至 %1$s</string>
     <string name="notification_error_title">锁屏失败</string>
     <string name="notification_error_text">请检查无障碍或设备管理器权限</string>
     <string name="overlay_warning_title">%1$d 秒后锁屏</string>
     <string name="overlay_warning_subtitle">%1$s 开始</string>
     <string name="overlay_grace_title">%1$d 秒后重新锁屏</string>
     <string name="overlay_grace_subtitle">本次剩余 %1$s</string>
+    <string name="overlay_whitelist_title">白名单剩余 %1$s</string>
+    <string name="overlay_whitelist_unlimited_title">白名单使用中</string>
+    <string name="overlay_whitelist_subtitle">仅允许白名单应用 · 至 %1$s</string>
 
     <string name="edit_title_new">新建任务</string>
     <string name="edit_title_existing">编辑任务</string>

@@ -14,6 +14,89 @@ class AppPrefs(context: Context) {
         get() = sp.getInt(KEY_GRACE, DEFAULT_GRACE).coerceIn(0, 300)
         set(value) = sp.edit().putInt(KEY_GRACE, value.coerceIn(0, 300)).commit().let { }
 
+    var whitelistPackages: Set<String>
+        get() = parseStringSet(sp.getString(KEY_WHITELIST_PACKAGES, null))
+        set(value) {
+            sp.edit().putString(KEY_WHITELIST_PACKAGES, stringSetToJson(value)).commit()
+        }
+
+    var whitelistInitialized: Boolean
+        get() = sp.getBoolean(KEY_WHITELIST_INITIALIZED, false)
+        set(value) = sp.edit().putBoolean(KEY_WHITELIST_INITIALIZED, value).commit().let { }
+
+    var whitelistLimitEnabled: Boolean
+        get() = sp.getBoolean(KEY_WHITELIST_LIMIT_ENABLED, true)
+        set(value) = sp.edit().putBoolean(KEY_WHITELIST_LIMIT_ENABLED, value).commit().let { }
+
+    var whitelistLimitSeconds: Int
+        get() {
+            // Older builds stored whole minutes; migrate on read.
+            val seconds = if (sp.contains(KEY_WHITELIST_LIMIT_SECONDS)) {
+                sp.getInt(KEY_WHITELIST_LIMIT_SECONDS, DEFAULT_WHITELIST_LIMIT_SECONDS)
+            } else {
+                sp.getInt(KEY_WHITELIST_LIMIT_MINUTES, DEFAULT_WHITELIST_LIMIT_MINUTES) * 60
+            }
+            return seconds.coerceIn(1, MAX_WHITELIST_LIMIT_SECONDS)
+        }
+        set(value) = sp.edit()
+            .putInt(KEY_WHITELIST_LIMIT_SECONDS, value.coerceIn(1, MAX_WHITELIST_LIMIT_SECONDS))
+            .commit().let { }
+
+    var sessionWhitelistPackages: Set<String>
+        get() = parseStringSet(sp.getString(KEY_SESSION_WHITELIST, null))
+        private set(value) {
+            sp.edit().putString(KEY_SESSION_WHITELIST, stringSetToJson(value)).commit()
+        }
+
+    var sessionWhitelistRemainingMillis: Long
+        get() = if (sp.getBoolean(KEY_SESSION_WHITELIST_VALID, false)) {
+            sp.getLong(KEY_SESSION_REMAINING_MILLIS, -2L)
+        } else {
+            -2L
+        }
+        private set(value) = sp.edit().putLong(KEY_SESSION_REMAINING_MILLIS, value).commit().let { }
+
+    var sessionWhitelistTotalMode: Boolean
+        get() = sp.getBoolean(KEY_SESSION_TOTAL_MODE, true)
+        private set(value) = sp.edit().putBoolean(KEY_SESSION_TOTAL_MODE, value).commit().let { }
+
+    var sessionWhitelistDurationMillis: Long
+        get() = sp.getLong(KEY_SESSION_DURATION_MILLIS, DEFAULT_WHITELIST_LIMIT_SECONDS * 1000L)
+        private set(value) = sp.edit().putLong(KEY_SESSION_DURATION_MILLIS, value).commit().let { }
+
+    fun snapshotWhitelistForSession() {
+        val duration = whitelistLimitSeconds * 1000L
+        sp.edit()
+            .putString(KEY_SESSION_WHITELIST, stringSetToJson(whitelistPackages))
+            .putLong(KEY_SESSION_DURATION_MILLIS, duration)
+            .putBoolean(KEY_SESSION_TOTAL_MODE, whitelistLimitEnabled)
+            .putLong(KEY_SESSION_REMAINING_MILLIS, duration)
+            .putBoolean(KEY_SESSION_WHITELIST_VALID, true)
+            .commit()
+    }
+
+    fun setSessionWhitelistRemaining(remainingMillis: Long) {
+        sessionWhitelistRemainingMillis = if (remainingMillis < 0L) -1L else remainingMillis
+    }
+
+    fun clearSessionWhitelist() {
+        sp.edit()
+            .remove(KEY_SESSION_WHITELIST)
+            .remove(KEY_SESSION_DURATION_MILLIS)
+            .remove(KEY_SESSION_TOTAL_MODE)
+            .remove(KEY_SESSION_REMAINING_MILLIS)
+            .remove(KEY_SESSION_WHITELIST_VALID)
+            .commit()
+    }
+
+    fun ensureWhitelistInitialized(defaults: Set<String>) {
+        if (whitelistInitialized) return
+        if (whitelistPackages.isEmpty()) {
+            whitelistPackages = defaults
+        }
+        whitelistInitialized = true
+    }
+
     var schedules: List<Schedule>
         get() = Schedule.parseList(sp.getString(KEY_SCHEDULES, null))
         set(value) {
@@ -62,6 +145,7 @@ class AppPrefs(context: Context) {
 
     fun clearCommitted() {
         sp.edit().remove(KEY_COMMITTED_END).remove(KEY_COMMITTED_GRACE).commit()
+        clearSessionWhitelist()
     }
 
     fun suppressedStarts(): Set<Long> {
@@ -116,6 +200,10 @@ class AppPrefs(context: Context) {
         get() = sp.getLong(KEY_STATE_GRACE_END_ELAPSED, 0L)
         set(value) = sp.edit().putLong(KEY_STATE_GRACE_END_ELAPSED, value).apply()
 
+    var statePeekActive: Boolean
+        get() = sp.getBoolean(KEY_STATE_PEEK_ACTIVE, false)
+        set(value) = sp.edit().putBoolean(KEY_STATE_PEEK_ACTIVE, value).apply()
+
     var stateNextStartMillis: Long
         get() = sp.getLong(KEY_STATE_NEXT_START, 0L)
         set(value) = sp.edit().putLong(KEY_STATE_NEXT_START, value).apply()
@@ -127,6 +215,26 @@ class AppPrefs(context: Context) {
     private fun nullableLong(key: String): Long? =
         if (sp.contains(key)) sp.getLong(key, 0L).takeIf { it > 0L } else null
 
+    private fun parseStringSet(raw: String?): Set<String> {
+        if (raw.isNullOrBlank()) return emptySet()
+        return try {
+            val array = JSONArray(raw)
+            buildSet {
+                for (i in 0 until array.length()) {
+                    array.optString(i, "").takeIf { it.isNotBlank() }?.let(::add)
+                }
+            }
+        } catch (_: Exception) {
+            emptySet()
+        }
+    }
+
+    private fun stringSetToJson(values: Set<String>): String {
+        val array = JSONArray()
+        values.sorted().forEach { array.put(it) }
+        return array.toString()
+    }
+
     private fun setNullableLong(key: String, value: Long?, critical: Boolean) {
         val editor = sp.edit()
         if (value == null) editor.remove(key) else editor.putLong(key, value)
@@ -137,6 +245,16 @@ class AppPrefs(context: Context) {
         private const val PREFS_NAME = "keep_me_out"
         private const val KEY_PRE_LOCK = "pre_lock_seconds"
         private const val KEY_GRACE = "grace_seconds"
+        private const val KEY_WHITELIST_PACKAGES = "whitelist_packages_json"
+        private const val KEY_WHITELIST_INITIALIZED = "whitelist_initialized"
+        private const val KEY_WHITELIST_LIMIT_ENABLED = "whitelist_limit_enabled"
+        private const val KEY_WHITELIST_LIMIT_MINUTES = "whitelist_limit_minutes"
+        private const val KEY_WHITELIST_LIMIT_SECONDS = "whitelist_limit_seconds"
+        private const val KEY_SESSION_WHITELIST = "session_whitelist_json"
+        private const val KEY_SESSION_DURATION_MILLIS = "session_whitelist_duration_millis"
+        private const val KEY_SESSION_TOTAL_MODE = "session_whitelist_total_mode"
+        private const val KEY_SESSION_REMAINING_MILLIS = "session_whitelist_remaining_millis"
+        private const val KEY_SESSION_WHITELIST_VALID = "session_whitelist_valid"
         private const val KEY_SCHEDULES = "schedules_json"
         private const val KEY_MANUAL_START = "manual_start_millis"
         private const val KEY_MANUAL_END = "manual_end_millis"
@@ -147,10 +265,14 @@ class AppPrefs(context: Context) {
         private const val KEY_STATE_LOCK_AT = "state_lock_at"
         private const val KEY_STATE_ACTIVE_UNTIL = "state_active_until"
         private const val KEY_STATE_GRACE_END_ELAPSED = "state_grace_end_elapsed"
+        private const val KEY_STATE_PEEK_ACTIVE = "state_peek_active"
         private const val KEY_STATE_NEXT_START = "state_next_start"
         private const val KEY_STATE_ERROR = "state_error"
 
         const val DEFAULT_PRE_LOCK = 30
         const val DEFAULT_GRACE = 5
+        const val DEFAULT_WHITELIST_LIMIT_MINUTES = 5
+        const val DEFAULT_WHITELIST_LIMIT_SECONDS = DEFAULT_WHITELIST_LIMIT_MINUTES * 60
+        const val MAX_WHITELIST_LIMIT_SECONDS = 24 * 60 * 60
     }
 }

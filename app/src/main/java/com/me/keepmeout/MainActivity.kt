@@ -15,15 +15,21 @@ import android.os.LocaleList
 import android.os.Looper
 import android.os.SystemClock
 import android.provider.Settings
+import android.provider.Telephony
+import android.text.InputType
+import android.text.method.DigitsKeyListener
 import android.util.Log
 import android.util.TypedValue
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.app.AlertDialog
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import android.widget.Spinner
 import android.widget.Switch
 import android.widget.TextView
 import android.widget.Toast
@@ -37,7 +43,9 @@ import com.me.keepmeout.util.PermissionState
 import com.me.keepmeout.util.TimeText
 import java.time.DayOfWeek
 import java.time.format.TextStyle
+import java.util.Locale
 import kotlin.math.ceil
+import kotlin.math.roundToInt
 
 class MainActivity : Activity() {
 
@@ -49,7 +57,15 @@ class MainActivity : Activity() {
     private lateinit var manualMinutesInput: EditText
     private lateinit var startManualButton: Button
     private lateinit var preLockInput: EditText
-    private lateinit var graceInput: EditText
+    private lateinit var peekInput: EditText
+    private lateinit var saveSettingsButton: Button
+    private lateinit var whitelistPickerButton: Button
+    private lateinit var whitelistLimitSwitch: Switch
+    private lateinit var whitelistDurationInput: EditText
+    private lateinit var whitelistUnitSpinner: Spinner
+    private lateinit var whitelistFrozenNote: TextView
+    private var whitelistUnitIsMinutes = true
+    private var suppressWhitelistUnitChange = false
     private lateinit var languageButton: Button
     private lateinit var permissionSummary: TextView
     private lateinit var permissionContainer: LinearLayout
@@ -91,15 +107,32 @@ class MainActivity : Activity() {
         manualMinutesInput = findViewById(R.id.manualMinutesInput)
         startManualButton = findViewById(R.id.startManualButton)
         preLockInput = findViewById(R.id.preLockInput)
-        graceInput = findViewById(R.id.graceInput)
+        peekInput = findViewById(R.id.peekInput)
+        saveSettingsButton = findViewById(R.id.saveSettingsButton)
+        whitelistPickerButton = findViewById(R.id.whitelistPickerButton)
+        whitelistLimitSwitch = findViewById(R.id.whitelistLimitSwitch)
+        whitelistDurationInput = findViewById(R.id.whitelistDurationInput)
+        whitelistUnitSpinner = findViewById(R.id.whitelistUnitSpinner)
+        whitelistFrozenNote = findViewById(R.id.whitelistFrozenNote)
         languageButton = findViewById(R.id.languageButton)
         permissionSummary = findViewById(R.id.permissionSummary)
         permissionContainer = findViewById(R.id.permissionContainer)
         scheduleContainer = findViewById(R.id.scheduleContainer)
         noTasksText = findViewById(R.id.noTasksText)
 
+        prefs.ensureWhitelistInitialized(defaultWhitelistPackages())
         preLockInput.setText(prefs.preLockSeconds.toString())
-        graceInput.setText(prefs.graceSeconds.toString())
+        peekInput.setText(prefs.graceSeconds.toString())
+        whitelistLimitSwitch.isChecked = prefs.whitelistLimitEnabled
+        setupWhitelistDuration()
+
+        whitelistPickerButton.setOnClickListener {
+            if (prefs.phase == LockPhase.IDLE) {
+                startActivity(Intent(this, WhitelistActivity::class.java))
+            } else {
+                Toast.makeText(this, R.string.whitelist_frozen_note, Toast.LENGTH_SHORT).show()
+            }
+        }
 
         startManualButton.setOnClickListener { startManualClicked() }
         cancelWarningButton.setOnClickListener {
@@ -108,7 +141,7 @@ class MainActivity : Activity() {
         exitLockButton.setOnClickListener {
             startLockService(ServiceActions.ACTION_EXIT_LOCK_SESSION)
         }
-        findViewById<Button>(R.id.saveSettingsButton).setOnClickListener {
+        saveSettingsButton.setOnClickListener {
             if (applySettings(showToast = true)) refreshStatus()
         }
         updateLanguageButton()
@@ -203,26 +236,41 @@ class MainActivity : Activity() {
                 statusTitle.setText(R.string.status_locked)
                 val until = prefs.stateActiveUntilMillis
                 detail = if (until > now) {
-                    getString(
-                        R.string.locked_detail,
-                        prefs.committedGraceSeconds ?: prefs.graceSeconds,
-                        TimeText.full(this, until),
-                    )
+                    getString(R.string.lock_until, TimeText.full(this, until))
                 } else {
                     getString(R.string.next_lock_none)
                 }
             }
 
             LockPhase.GRACE -> {
-                statusTitle.setText(R.string.status_grace)
-                val remaining = (prefs.stateGraceEndElapsed - SystemClock.elapsedRealtime())
-                    .coerceAtLeast(0L)
-                val seconds = ceil(remaining / 1000.0).toInt()
-                detail = getString(
-                    R.string.grace_detail,
-                    seconds,
-                    TimeText.full(this, prefs.stateActiveUntilMillis),
-                )
+                val until = prefs.stateActiveUntilMillis
+                val whitelistEnd = prefs.stateGraceEndElapsed
+                if (prefs.statePeekActive) {
+                    statusTitle.setText(R.string.status_grace)
+                    val remaining = (whitelistEnd - SystemClock.elapsedRealtime()).coerceAtLeast(0L)
+                    val seconds = ceil(remaining / 1000.0).toInt()
+                    detail = getString(
+                        R.string.grace_detail,
+                        seconds,
+                        TimeText.full(this, until),
+                    )
+                } else {
+                    statusTitle.setText(R.string.status_whitelist)
+                    detail = if (whitelistEnd > 0L) {
+                        val remaining = (whitelistEnd - SystemClock.elapsedRealtime())
+                            .coerceAtLeast(0L)
+                        getString(
+                            R.string.whitelist_detail,
+                            TimeText.remaining(remaining),
+                            TimeText.full(this, until),
+                        )
+                    } else {
+                        getString(
+                            R.string.whitelist_unlimited_detail,
+                            TimeText.full(this, until),
+                        )
+                    }
+                }
             }
         }
 
@@ -231,11 +279,23 @@ class MainActivity : Activity() {
         }
         statusDetail.text = detail
         cancelWarningButton.visibility = if (showCancel) View.VISIBLE else View.GONE
-        exitLockButton.visibility = if (phase == LockPhase.LOCKED || phase == LockPhase.GRACE) {
+        val canEditSettings = phase == LockPhase.IDLE
+        exitLockButton.visibility = if (
+            BuildConfig.DEBUG && (phase == LockPhase.LOCKED || phase == LockPhase.GRACE)
+        ) {
             View.VISIBLE
         } else {
             View.GONE
         }
+        exitLockButton.setText(R.string.debug_exit_lock)
+        preLockInput.isEnabled = canEditSettings
+        peekInput.isEnabled = canEditSettings
+        saveSettingsButton.isEnabled = canEditSettings
+        whitelistPickerButton.isEnabled = canEditSettings
+        whitelistLimitSwitch.isEnabled = canEditSettings
+        whitelistDurationInput.isEnabled = canEditSettings
+        whitelistUnitSpinner.isEnabled = canEditSettings
+        whitelistFrozenNote.visibility = if (canEditSettings) View.GONE else View.VISIBLE
         startManualButton.isEnabled = phase == LockPhase.IDLE && canStartNow
     }
 
@@ -509,6 +569,20 @@ class MainActivity : Activity() {
         languageButton.text = getString(R.string.language_current, current)
     }
 
+    private fun defaultWhitelistPackages(): Set<String> {
+        val result = mutableSetOf<String>()
+        packageManager.resolveActivity(
+            Intent(Intent.ACTION_DIAL),
+            android.content.pm.PackageManager.MATCH_DEFAULT_ONLY,
+        )?.activityInfo?.packageName?.let(result::add)
+        try {
+            Telephony.Sms.getDefaultSmsPackage(this)?.let(result::add)
+        } catch (_: Exception) {
+            // The device may not expose a default SMS package.
+        }
+        return result
+    }
+
     private fun showLanguageDialog() {
         val options = arrayOf("中文", "English")
         val selected = if (currentLanguageCode() == "zh") 0 else 1
@@ -545,18 +619,30 @@ class MainActivity : Activity() {
     }
 
     private fun applySettings(showToast: Boolean, reconcile: Boolean = true): Boolean {
+        if (prefs.phase != LockPhase.IDLE) {
+            Toast.makeText(this, R.string.whitelist_frozen_note, Toast.LENGTH_SHORT).show()
+            return false
+        }
         val preLock = preLockInput.text.toString().toIntOrNull()
-        val grace = graceInput.text.toString().toIntOrNull()
         if (preLock == null || preLock !in 0..300) {
             Toast.makeText(this, R.string.invalid_seconds, Toast.LENGTH_SHORT).show()
             return false
         }
-        if (grace == null || grace !in 0..300) {
+        val peek = peekInput.text.toString().toIntOrNull()
+        if (peek == null || peek !in 0..300) {
             Toast.makeText(this, R.string.invalid_seconds, Toast.LENGTH_SHORT).show()
             return false
         }
+        val limitEnabled = whitelistLimitSwitch.isChecked
+        val whitelistSeconds = parseWhitelistDurationSeconds()
+        if (whitelistSeconds == null) {
+            Toast.makeText(this, R.string.invalid_whitelist_duration, Toast.LENGTH_SHORT).show()
+            return false
+        }
         prefs.preLockSeconds = preLock
-        prefs.graceSeconds = grace
+        prefs.graceSeconds = peek
+        prefs.whitelistLimitEnabled = limitEnabled
+        prefs.whitelistLimitSeconds = whitelistSeconds
         if (reconcile && serviceRelevant()) {
             startLockService(ServiceActions.ACTION_RECONCILE)
         }
@@ -564,6 +650,88 @@ class MainActivity : Activity() {
             Toast.makeText(this, R.string.settings_saved, Toast.LENGTH_SHORT).show()
         }
         return true
+    }
+
+    private fun setupWhitelistDuration() {
+        val units = arrayOf(
+            getString(R.string.minutes_suffix),
+            getString(R.string.seconds_suffix),
+        )
+        whitelistUnitSpinner.adapter = ArrayAdapter(
+            this,
+            android.R.layout.simple_spinner_item,
+            units,
+        ).apply {
+            setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+        }
+        setWhitelistDurationFromSeconds(prefs.whitelistLimitSeconds)
+        whitelistUnitSpinner.onItemSelectedListener =
+            object : AdapterView.OnItemSelectedListener {
+                override fun onItemSelected(
+                    parent: AdapterView<*>?,
+                    view: View?,
+                    position: Int,
+                    id: Long,
+                ) {
+                    if (suppressWhitelistUnitChange) return
+                    val minutes = position == 0
+                    if (minutes == whitelistUnitIsMinutes) return
+                    // Preserve the duration when the unit changes (e.g. 5 分钟 → 300 秒).
+                    val seconds = parseWhitelistDurationSeconds()
+                    whitelistUnitIsMinutes = minutes
+                    if (seconds != null) showWhitelistDuration(seconds)
+                    applyWhitelistDurationInputMode()
+                }
+
+                override fun onNothingSelected(parent: AdapterView<*>?) = Unit
+            }
+    }
+
+    private fun setWhitelistDurationFromSeconds(seconds: Int) {
+        val useMinutes = seconds >= 60 && seconds % 60 == 0
+        whitelistUnitIsMinutes = useMinutes
+        suppressWhitelistUnitChange = true
+        whitelistUnitSpinner.setSelection(if (useMinutes) 0 else 1, false)
+        suppressWhitelistUnitChange = false
+        showWhitelistDuration(seconds)
+        applyWhitelistDurationInputMode()
+    }
+
+    private fun showWhitelistDuration(seconds: Int) {
+        whitelistDurationInput.setText(
+            if (whitelistUnitIsMinutes) {
+                formatWhitelistMinutes(seconds)
+            } else {
+                seconds.toString()
+            }
+        )
+    }
+
+    private fun formatWhitelistMinutes(seconds: Int): String {
+        if (seconds % 60 == 0) return (seconds / 60).toString()
+        return String.format(Locale.ROOT, "%.2f", seconds / 60.0)
+            .trimEnd('0')
+            .trimEnd('.')
+    }
+
+    private fun parseWhitelistDurationSeconds(): Int? {
+        val raw = whitelistDurationInput.text?.toString()?.trim().orEmpty()
+        if (raw.isEmpty()) return null
+        val seconds = if (whitelistUnitIsMinutes) {
+            val minutes = raw.toDoubleOrNull() ?: return null
+            (minutes * 60.0).roundToInt()
+        } else {
+            raw.toIntOrNull() ?: return null
+        }
+        return seconds.takeIf { it in 1..AppPrefs.MAX_WHITELIST_LIMIT_SECONDS }
+    }
+
+    private fun applyWhitelistDurationInputMode() {
+        whitelistDurationInput.inputType = InputType.TYPE_CLASS_NUMBER or
+            (if (whitelistUnitIsMinutes) InputType.TYPE_NUMBER_FLAG_DECIMAL else 0)
+        whitelistDurationInput.keyListener = DigitsKeyListener.getInstance(
+            if (whitelistUnitIsMinutes) "0123456789." else "0123456789"
+        )
     }
 
     private fun serviceRelevant(): Boolean {

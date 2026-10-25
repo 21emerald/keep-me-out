@@ -15,9 +15,21 @@ android {
         versionName = "1.0"
     }
 
+    buildFeatures {
+        buildConfig = true
+    }
+
+    lint {
+        // Personal sideload build: release lint would need extra network-only artifacts.
+        checkReleaseBuilds = false
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            // Personal sideload: use the debug key so the release build can update
+            // the development build in place without losing app data.
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 

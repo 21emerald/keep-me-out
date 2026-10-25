@@ -7,6 +7,7 @@ object ServiceActions {
     const val ACTION_EXIT_LOCK_SESSION = "com.me.keepmeout.action.EXIT_LOCK_SESSION"
     const val ACTION_GRACE_EXPIRED = "com.me.keepmeout.action.GRACE_EXPIRED"
     const val ACTION_STATE_CHANGED = "com.me.keepmeout.action.STATE_CHANGED"
+    const val ACTION_HIDE_WHITELIST_HOME = "com.me.keepmeout.action.HIDE_WHITELIST_HOME"
     const val EXTRA_MINUTES = "com.me.keepmeout.extra.MINUTES"
 
     const val ALARM_WARNING = "com.me.keepmeout.alarm.WARNING"

@@ -3,7 +3,7 @@
     <string name="app_name">Keep Me Out</string>
 
     <string name="accessibility_service_label">Keep Me Out Screen Lock</string>
-    <string name="accessibility_description">Performs the system lock-screen action at the configured time. It does not read screen content.</string>
+    <string name="accessibility_description">Performs the system lock-screen action at the configured time and identifies the foreground app to enforce the whitelist. It does not read screen content.</string>
     <string name="device_admin_label">Keep Me Out Device Admin</string>
     <string name="device_admin_description">Fallback when the accessibility lock is unavailable. It only uses the force-lock policy.</string>
 
@@ -20,6 +20,26 @@
     <string name="grace_label">Allowed use after unlock</string>
     <string name="seconds_suffix">seconds</string>
     <string name="save_settings">Save settings</string>
+
+    <string name="section_whitelist">Emergency whitelist</string>
+    <string name="whitelist_apps_label">App whitelist</string>
+    <string name="whitelist_pick_apps">App list</string>
+    <string name="whitelist_limit_label">Limit total duration</string>
+    <string name="whitelist_minutes_label">Whitelist duration</string>
+    <string name="whitelist_limit_note">Checked: total for this lock session. Unchecked: resets on each unlock. Leaving and re-entering an app does not reset it.</string>
+    <string name="whitelist_frozen_note">Whitelist apps and time are locked once a lock session starts.</string>
+    <string name="whitelist_select_title">Choose whitelist apps</string>
+    <string name="whitelist_search_hint">Search apps</string>
+    <string name="whitelist_no_matches">No matching apps</string>
+    <string name="whitelist_save">Save whitelist</string>
+    <string name="whitelist_empty">No whitelist apps selected</string>
+    <string name="whitelist_saved">Whitelist saved</string>
+    <string name="whitelist_home_title">Whitelist apps</string>
+    <string name="whitelist_home_subtitle">Locked: whitelist apps only</string>
+    <string name="whitelist_home_empty">No whitelist apps selected yet</string>
+    <string name="whitelist_home_launch_failed">Could not open this app</string>
+    <string name="invalid_whitelist_duration">Whitelist duration must be between 1 second and 24 hours</string>
+    <string name="debug_exit_lock">Debug: exit this lock now</string>
 
     <string name="section_language">Language</string>
     <string name="language_current">Language: %1$s</string>
@@ -44,6 +64,9 @@
     <string name="status_warning">Locking soon</string>
     <string name="status_locked">Locked</string>
     <string name="status_grace">Grace period</string>
+    <string name="status_whitelist">Whitelist active</string>
+    <string name="whitelist_detail">%1$s left · whitelist apps only · until %2$s</string>
+    <string name="whitelist_unlimited_detail">No time limit · whitelist apps only · until %1$s</string>
     <string name="status_error">Lock error</string>
     <string name="cancel_this_warning">Cancel this lock</string>
     <string name="exit_lock_session">Exit this lock</string>
@@ -81,6 +104,7 @@
     <string name="notification_channel_name">Lock status</string>
     <string name="notification_channel_description">Shows the next lock time and current lock status</string>
     <string name="notification_cancel">Cancel</string>
+    <string name="notification_open_whitelist">Whitelist apps</string>
     <string name="notification_tap">Open Keep Me Out</string>
     <string name="notification_idle_title">Keep Me Out</string>
     <string name="notification_idle_text">Next lock: %1$s</string>
@@ -91,12 +115,18 @@
     <string name="notification_locked_text">Locked until %1$s</string>
     <string name="notification_grace_title">Grace period</string>
     <string name="notification_grace_text">Re-locks in %1$d sec</string>
+    <string name="notification_whitelist_title">Whitelist active</string>
+    <string name="notification_whitelist_text">%1$s left · whitelist apps only · until %2$s</string>
+    <string name="notification_whitelist_unlimited_text">Whitelist apps only · until %1$s</string>
     <string name="notification_error_title">Lock failed</string>
     <string name="notification_error_text">Check the accessibility or device admin permission</string>
     <string name="overlay_warning_title">Locking in %1$d sec</string>
     <string name="overlay_warning_subtitle">Starts at %1$s</string>
     <string name="overlay_grace_title">Re-locking in %1$d sec</string>
     <string name="overlay_grace_subtitle">%1$s left in this lock</string>
+    <string name="overlay_whitelist_title">Whitelist %1$s left</string>
+    <string name="overlay_whitelist_unlimited_title">Whitelist active</string>
+    <string name="overlay_whitelist_subtitle">Whitelist apps only · until %1$s</string>
 
     <string name="edit_title_new">New schedule</string>
     <string name="edit_title_existing">Edit schedule</string>
