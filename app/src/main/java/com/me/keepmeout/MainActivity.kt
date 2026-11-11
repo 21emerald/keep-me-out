@@ -53,10 +53,13 @@ class MainActivity : Activity() {
     private lateinit var statusTitle: TextView
     private lateinit var statusDetail: TextView
     private lateinit var cancelWarningButton: Button
+    private lateinit var postponeWarningButton: Button
+    private lateinit var warningActionsRow: LinearLayout
     private lateinit var exitLockButton: Button
     private lateinit var manualMinutesInput: EditText
     private lateinit var startManualButton: Button
     private lateinit var preLockInput: EditText
+    private lateinit var postponeInput: EditText
     private lateinit var peekInput: EditText
     private lateinit var saveSettingsButton: Button
     private lateinit var whitelistPickerButton: Button
@@ -64,6 +67,10 @@ class MainActivity : Activity() {
     private lateinit var whitelistDurationInput: EditText
     private lateinit var whitelistUnitSpinner: Spinner
     private lateinit var whitelistFrozenNote: TextView
+    private lateinit var protectionSwitch: Switch
+    private lateinit var protectionStatus: TextView
+    private lateinit var protectionTamper: TextView
+    private lateinit var protectionFrozenNote: TextView
     private var whitelistUnitIsMinutes = true
     private var suppressWhitelistUnitChange = false
     private lateinit var languageButton: Button
@@ -103,10 +110,13 @@ class MainActivity : Activity() {
         statusTitle = findViewById(R.id.statusTitle)
         statusDetail = findViewById(R.id.statusDetail)
         cancelWarningButton = findViewById(R.id.cancelWarningButton)
+        postponeWarningButton = findViewById(R.id.postponeWarningButton)
+        warningActionsRow = findViewById(R.id.warningActionsRow)
         exitLockButton = findViewById(R.id.exitLockButton)
         manualMinutesInput = findViewById(R.id.manualMinutesInput)
         startManualButton = findViewById(R.id.startManualButton)
         preLockInput = findViewById(R.id.preLockInput)
+        postponeInput = findViewById(R.id.postponeInput)
         peekInput = findViewById(R.id.peekInput)
         saveSettingsButton = findViewById(R.id.saveSettingsButton)
         whitelistPickerButton = findViewById(R.id.whitelistPickerButton)
@@ -114,6 +124,10 @@ class MainActivity : Activity() {
         whitelistDurationInput = findViewById(R.id.whitelistDurationInput)
         whitelistUnitSpinner = findViewById(R.id.whitelistUnitSpinner)
         whitelistFrozenNote = findViewById(R.id.whitelistFrozenNote)
+        protectionSwitch = findViewById(R.id.protectionSwitch)
+        protectionStatus = findViewById(R.id.protectionStatus)
+        protectionTamper = findViewById(R.id.protectionTamper)
+        protectionFrozenNote = findViewById(R.id.protectionFrozenNote)
         languageButton = findViewById(R.id.languageButton)
         permissionSummary = findViewById(R.id.permissionSummary)
         permissionContainer = findViewById(R.id.permissionContainer)
@@ -122,8 +136,10 @@ class MainActivity : Activity() {
 
         prefs.ensureWhitelistInitialized(defaultWhitelistPackages())
         preLockInput.setText(prefs.preLockSeconds.toString())
+        postponeInput.setText(prefs.postponeMinutes.toString())
         peekInput.setText(prefs.graceSeconds.toString())
         whitelistLimitSwitch.isChecked = prefs.whitelistLimitEnabled
+        protectionSwitch.isChecked = prefs.uninstallProtection
         setupWhitelistDuration()
 
         whitelistPickerButton.setOnClickListener {
@@ -138,11 +154,14 @@ class MainActivity : Activity() {
         cancelWarningButton.setOnClickListener {
             startLockService(ServiceActions.ACTION_CANCEL_WARNING)
         }
+        postponeWarningButton.setOnClickListener {
+            startLockService(ServiceActions.ACTION_POSTPONE_WARNING)
+        }
         exitLockButton.setOnClickListener {
             startLockService(ServiceActions.ACTION_EXIT_LOCK_SESSION)
         }
         saveSettingsButton.setOnClickListener {
-            if (applySettings(showToast = true)) refreshStatus()
+            if (applySettings(showToast = true)) refreshAll()
         }
         updateLanguageButton()
         languageButton.setOnClickListener { showLanguageDialog() }
@@ -204,6 +223,7 @@ class MainActivity : Activity() {
         refreshPermissions()
         refreshTaskList()
         refreshStatus()
+        refreshProtectionStatus()
     }
 
     private fun refreshStatus() {
@@ -277,8 +297,17 @@ class MainActivity : Activity() {
         if (error.isNotEmpty()) {
             detail = if (detail.isBlank()) error else "$detail\n$error"
         }
+        // A postponed "lock now" session hides its countdown but can still be cancelled.
+        val cancelPostponedManual = phase == LockPhase.IDLE &&
+            prefs.postponeFromManual &&
+            (prefs.manualStartMillis ?: 0L) > now &&
+            (prefs.manualEndMillis ?: 0L) > now
         statusDetail.text = detail
-        cancelWarningButton.visibility = if (showCancel) View.VISIBLE else View.GONE
+        val showCancelButton = showCancel || cancelPostponedManual
+        warningActionsRow.visibility = if (showCancelButton) View.VISIBLE else View.GONE
+        cancelWarningButton.visibility = if (showCancelButton) View.VISIBLE else View.GONE
+        postponeWarningButton.visibility = if (showCancel) View.VISIBLE else View.GONE
+        postponeWarningButton.text = getString(R.string.postpone_action, prefs.postponeMinutes)
         val canEditSettings = phase == LockPhase.IDLE
         exitLockButton.visibility = if (
             BuildConfig.DEBUG && (phase == LockPhase.LOCKED || phase == LockPhase.GRACE)
@@ -289,6 +318,7 @@ class MainActivity : Activity() {
         }
         exitLockButton.setText(R.string.debug_exit_lock)
         preLockInput.isEnabled = canEditSettings
+        postponeInput.isEnabled = canEditSettings
         peekInput.isEnabled = canEditSettings
         saveSettingsButton.isEnabled = canEditSettings
         whitelistPickerButton.isEnabled = canEditSettings
@@ -296,6 +326,8 @@ class MainActivity : Activity() {
         whitelistDurationInput.isEnabled = canEditSettings
         whitelistUnitSpinner.isEnabled = canEditSettings
         whitelistFrozenNote.visibility = if (canEditSettings) View.GONE else View.VISIBLE
+        protectionSwitch.isEnabled = canEditSettings
+        protectionFrozenNote.visibility = if (canEditSettings) View.GONE else View.VISIBLE
         startManualButton.isEnabled = phase == LockPhase.IDLE && canStartNow
     }
 
@@ -355,7 +387,7 @@ class MainActivity : Activity() {
             label = getString(R.string.permission_device_admin),
             status = permissionOnOff(PermissionState.deviceAdminActive(this)),
             ok = PermissionState.deviceAdminActive(this),
-            required = !PermissionState.accessibilityEnabled(this),
+            required = prefs.uninstallProtection || !PermissionState.accessibilityEnabled(this),
             actionText = getString(
                 if (PermissionState.deviceAdminActive(this)) R.string.permission_settings
                 else R.string.permission_open
@@ -404,6 +436,35 @@ class MainActivity : Activity() {
         )
 
         refreshStatus()
+    }
+
+    private fun refreshProtectionStatus() {
+        val protection = prefs.uninstallProtection
+        val admin = PermissionState.deviceAdminActive(this)
+        val accessibility = PermissionState.accessibilityEnabled(this)
+        protectionStatus.text = when {
+            !protection -> getString(R.string.protection_status_off)
+            !accessibility -> getString(R.string.protection_status_accessibility_off)
+            !admin -> getString(R.string.protection_status_admin_off)
+            else -> getString(R.string.protection_status_on)
+        }
+        protectionStatus.setTextColor(
+            when {
+                !protection -> themeColor(android.R.attr.textColorSecondary)
+                admin && accessibility -> getColor(R.color.success)
+                else -> getColor(R.color.danger)
+            }
+        )
+        val tamper = prefs.lastTamperMillis
+        if (tamper != null) {
+            protectionTamper.visibility = View.VISIBLE
+            protectionTamper.text = getString(
+                R.string.protection_tamper,
+                "${TimeText.full(this, tamper)} · ${prefs.lastTamperReason}",
+            )
+        } else {
+            protectionTamper.visibility = View.GONE
+        }
     }
 
     private fun permissionOnOff(on: Boolean): String =
@@ -532,6 +593,16 @@ class MainActivity : Activity() {
                     current[index] = updated
                     prefs.saveSchedules(current)
                 }
+                if (checked) {
+                    // Re-enabling a task inside its own time range should lock right away.
+                    // Drop a previous cancel/postpone record for this occurrence so the
+                    // service can adopt it and start the countdown.
+                    val now = System.currentTimeMillis()
+                    updated.windowContaining(now, java.time.ZoneId.systemDefault())?.let { (start, _) ->
+                        prefs.removeSuppressedStarts(listOf(start))
+                        if (prefs.phase == LockPhase.IDLE) prefs.clearManual()
+                    }
+                }
                 subtitle.text = getString(
                     if (checked) R.string.schedule_enabled else R.string.schedule_disabled
                 )
@@ -628,6 +699,11 @@ class MainActivity : Activity() {
             Toast.makeText(this, R.string.invalid_seconds, Toast.LENGTH_SHORT).show()
             return false
         }
+        val postpone = postponeInput.text.toString().toIntOrNull()
+        if (postpone == null || postpone !in 1..AppPrefs.MAX_POSTPONE_MINUTES) {
+            Toast.makeText(this, R.string.invalid_minutes, Toast.LENGTH_SHORT).show()
+            return false
+        }
         val peek = peekInput.text.toString().toIntOrNull()
         if (peek == null || peek !in 0..300) {
             Toast.makeText(this, R.string.invalid_seconds, Toast.LENGTH_SHORT).show()
@@ -639,10 +715,19 @@ class MainActivity : Activity() {
             Toast.makeText(this, R.string.invalid_whitelist_duration, Toast.LENGTH_SHORT).show()
             return false
         }
+        val protectionEnabled = protectionSwitch.isChecked
         prefs.preLockSeconds = preLock
+        prefs.postponeMinutes = postpone
         prefs.graceSeconds = peek
         prefs.whitelistLimitEnabled = limitEnabled
         prefs.whitelistLimitSeconds = whitelistSeconds
+        prefs.uninstallProtection = protectionEnabled
+        if (protectionEnabled &&
+            (!PermissionState.accessibilityEnabled(this) ||
+                !PermissionState.deviceAdminActive(this))
+        ) {
+            Toast.makeText(this, R.string.need_permissions, Toast.LENGTH_SHORT).show()
+        }
         if (reconcile && serviceRelevant()) {
             startLockService(ServiceActions.ACTION_RECONCILE)
         }

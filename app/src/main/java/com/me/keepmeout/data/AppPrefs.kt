@@ -14,6 +14,14 @@ class AppPrefs(context: Context) {
         get() = sp.getInt(KEY_GRACE, DEFAULT_GRACE).coerceIn(0, 300)
         set(value) = sp.edit().putInt(KEY_GRACE, value.coerceIn(0, 300)).commit().let { }
 
+    /** How many minutes a lock is postponed when the user taps "postpone" during the countdown. */
+    var postponeMinutes: Int
+        get() = sp.getInt(KEY_POSTPONE_MINUTES, DEFAULT_POSTPONE_MINUTES)
+            .coerceIn(1, MAX_POSTPONE_MINUTES)
+        set(value) = sp.edit()
+            .putInt(KEY_POSTPONE_MINUTES, value.coerceIn(1, MAX_POSTPONE_MINUTES))
+            .commit().let { }
+
     var whitelistPackages: Set<String>
         get() = parseStringSet(sp.getString(KEY_WHITELIST_PACKAGES, null))
         set(value) {
@@ -115,6 +123,15 @@ class AppPrefs(context: Context) {
         get() = nullableLong(KEY_MANUAL_END)
         set(value) = setNullableLong(KEY_MANUAL_END, value, critical = true)
 
+    /**
+     * True when the pending manual window came from a "lock now" session rather than
+     * from postponing a scheduled task. Such a postponed lock can be cancelled while
+     * its countdown is hidden.
+     */
+    var postponeFromManual: Boolean
+        get() = sp.getBoolean(KEY_POSTPONE_FROM_MANUAL, false)
+        set(value) = sp.edit().putBoolean(KEY_POSTPONE_FROM_MANUAL, value).commit().let { }
+
     var committedEndMillis: Long?
         get() = nullableLong(KEY_COMMITTED_END)
         set(value) = setNullableLong(KEY_COMMITTED_END, value, critical = true)
@@ -130,6 +147,7 @@ class AppPrefs(context: Context) {
     fun clearManual() {
         manualStartMillis = null
         manualEndMillis = null
+        postponeFromManual = false
     }
 
     fun commitSession(endMillis: Long, grace: Int) {
@@ -169,6 +187,16 @@ class AppPrefs(context: Context) {
         sp.edit().putString(KEY_SUPPRESSED, array.toString()).commit()
     }
 
+    fun removeSuppressedStarts(values: Collection<Long>) {
+        if (values.isEmpty()) return
+        val current = suppressedStarts()
+        val kept = current - values.toSet()
+        if (kept.size == current.size) return
+        val array = JSONArray()
+        kept.forEach { array.put(it) }
+        sp.edit().putString(KEY_SUPPRESSED, array.toString()).commit()
+    }
+
     fun pruneSuppressed(nowMillis: Long) {
         val cutoff = nowMillis - 2L * 24 * 60 * 60 * 1000
         val kept = suppressedStarts().filter { it >= cutoff }
@@ -179,6 +207,31 @@ class AppPrefs(context: Context) {
     }
 
     fun hasEnabledSchedules(): Boolean = schedules.any { it.enabled }
+
+    var uninstallProtection: Boolean
+        get() = sp.getBoolean(KEY_UNINSTALL_PROTECTION, false)
+        set(value) = sp.edit().putBoolean(KEY_UNINSTALL_PROTECTION, value).commit().let { }
+
+    var lastTamperMillis: Long?
+        get() = nullableLong(KEY_PROTECTION_TAMPER_MILLIS)
+        set(value) = setNullableLong(KEY_PROTECTION_TAMPER_MILLIS, value, critical = true)
+
+    var lastTamperReason: String
+        get() = sp.getString(KEY_PROTECTION_TAMPER_REASON, "").orEmpty()
+        set(value) = sp.edit().putString(KEY_PROTECTION_TAMPER_REASON, value).commit().let { }
+
+    /**
+     * True while a lock session should be protected from uninstall attempts.
+     * Reads only persisted state so the accessibility guard works even when
+     * LockService has been killed.
+     */
+    fun isProtectionSessionActive(now: Long = System.currentTimeMillis()): Boolean {
+        if (!uninstallProtection) return false
+        val currentPhase = phase
+        if (currentPhase == LockPhase.IDLE) return false
+        val committed = committedEndMillis ?: 0L
+        return committed > now || currentPhase == LockPhase.WARNING
+    }
 
     var phase: LockPhase
         get() = try {
@@ -245,6 +298,7 @@ class AppPrefs(context: Context) {
         private const val PREFS_NAME = "keep_me_out"
         private const val KEY_PRE_LOCK = "pre_lock_seconds"
         private const val KEY_GRACE = "grace_seconds"
+        private const val KEY_POSTPONE_MINUTES = "postpone_minutes"
         private const val KEY_WHITELIST_PACKAGES = "whitelist_packages_json"
         private const val KEY_WHITELIST_INITIALIZED = "whitelist_initialized"
         private const val KEY_WHITELIST_LIMIT_ENABLED = "whitelist_limit_enabled"
@@ -258,9 +312,13 @@ class AppPrefs(context: Context) {
         private const val KEY_SCHEDULES = "schedules_json"
         private const val KEY_MANUAL_START = "manual_start_millis"
         private const val KEY_MANUAL_END = "manual_end_millis"
+        private const val KEY_POSTPONE_FROM_MANUAL = "postpone_from_manual"
         private const val KEY_COMMITTED_END = "committed_end_millis"
         private const val KEY_COMMITTED_GRACE = "committed_grace_seconds"
         private const val KEY_SUPPRESSED = "suppressed_starts_json"
+        private const val KEY_UNINSTALL_PROTECTION = "uninstall_protection"
+        private const val KEY_PROTECTION_TAMPER_MILLIS = "protection_tamper_millis"
+        private const val KEY_PROTECTION_TAMPER_REASON = "protection_tamper_reason"
         private const val KEY_PHASE = "state_phase"
         private const val KEY_STATE_LOCK_AT = "state_lock_at"
         private const val KEY_STATE_ACTIVE_UNTIL = "state_active_until"
@@ -271,6 +329,8 @@ class AppPrefs(context: Context) {
 
         const val DEFAULT_PRE_LOCK = 30
         const val DEFAULT_GRACE = 5
+        const val DEFAULT_POSTPONE_MINUTES = 5
+        const val MAX_POSTPONE_MINUTES = 24 * 60
         const val DEFAULT_WHITELIST_LIMIT_MINUTES = 5
         const val DEFAULT_WHITELIST_LIMIT_SECONDS = DEFAULT_WHITELIST_LIMIT_MINUTES * 60
         const val MAX_WHITELIST_LIMIT_SECONDS = 24 * 60 * 60

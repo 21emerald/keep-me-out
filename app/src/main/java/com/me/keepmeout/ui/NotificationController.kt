@@ -23,16 +23,26 @@ class NotificationController(private val service: Service) {
         ensureChannel()
     }
 
-    fun showIdle(nextStartMillis: Long?) {
+    fun showIdle(nextStartMillis: Long?, showCancelAction: Boolean = false) {
         val text = if (nextStartMillis != null) {
             service.getString(R.string.notification_idle_text, TimeText.full(service, nextStartMillis))
         } else {
             service.getString(R.string.notification_no_tasks)
         }
-        post(baseBuilder(service.getString(R.string.notification_idle_title), text).build())
+        val builder = baseBuilder(service.getString(R.string.notification_idle_title), text)
+        if (showCancelAction) {
+            builder.addAction(
+                Notification.Action.Builder(
+                    Icon.createWithResource(service, R.drawable.ic_cancel),
+                    service.getString(R.string.notification_cancel),
+                    cancelPendingIntent(),
+                ).build()
+            )
+        }
+        post(builder.build())
     }
 
-    fun showWarning(startMillis: Long) {
+    fun showWarning(startMillis: Long, postponeMinutes: Int) {
         val builder = baseBuilder(
             service.getString(R.string.notification_warning_title),
             service.getString(R.string.notification_warning_text, TimeText.full(service, startMillis)),
@@ -41,6 +51,13 @@ class NotificationController(private val service: Service) {
             .setWhen(startMillis)
             .setUsesChronometer(true)
             .setChronometerCountDown(true)
+            .addAction(
+                Notification.Action.Builder(
+                    Icon.createWithResource(service, R.drawable.ic_notification),
+                    service.getString(R.string.notification_postpone, postponeMinutes),
+                    postponePendingIntent(),
+                ).build()
+            )
             .addAction(
                 Notification.Action.Builder(
                     Icon.createWithResource(service, R.drawable.ic_cancel),
@@ -172,6 +189,17 @@ class NotificationController(private val service: Service) {
         return PendingIntent.getActivity(
             service,
             3001,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+        )
+    }
+
+    private fun postponePendingIntent(): PendingIntent {
+        val intent = Intent(service, LockService::class.java)
+            .setAction(ServiceActions.ACTION_POSTPONE_WARNING)
+        return PendingIntent.getForegroundService(
+            service,
+            3005,
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
         )

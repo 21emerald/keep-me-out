@@ -13,6 +13,8 @@ Keep Me Out is a small, personal Android app that helps you use your phone less 
 - **Lock now** — choose a duration in minutes, show a configurable pre-lock countdown, then lock the phone for the full duration. The pre-lock countdown is not counted as lock time.
 - **Scheduled locks** — weekly schedules (select Monday–Sunday; all seven means every day) or one-time schedules with a date and start/end time. If the end time is earlier than the start time, the window ends the next day. Multiple schedules can overlap.
 - **Warning before scheduled locks** — a floating countdown starts `preLockSeconds` before the configured start, and the phone locks at the start time.
+- **Postpone the countdown** — during the warning countdown, postpone the lock by N minutes (configurable under **Lock settings**) from the notification or the app. The countdown disappears and only reappears `preLockSeconds` before the new time, then locks. The session still ends at the original end time. A postponed **Lock now** session can still be cancelled from the status card or the notification while its countdown is hidden.
+- **Re-enable inside the window** — if a schedule is turned on again while its own time window is already running, the countdown starts immediately instead of waiting for the next occurrence.
 - **Unlock grace** — every unlock during an active lock gives `graceSeconds` of use, then the phone locks again. This repeats until the session ends.
 - **Whitelist page** — after unlocking during a lock session, a page opens automatically and shows only the whitelisted apps. Tap an app to open it; leaving that app returns to the whitelist page and restarts the grace countdown. The page closes when the lock session ends.
 - **Emergency whitelist** — choose the allowed apps with **App list** and set **Whitelist duration** in minutes or seconds. **Limit total duration** controls how the duration is spent:
@@ -23,6 +25,7 @@ Keep Me Out is a small, personal Android app that helps you use your phone less 
 - **Cancel a warning** — before the lock starts, cancel that occurrence from the app or the notification.
 - **One-time cleanup** — a one-time schedule is removed automatically after it finishes, or immediately when its only occurrence is cancelled or exited.
 - **Language** — switch between Chinese and English in the app. The UI, date/day formats, notifications and overlay follow the choice and it is remembered.
+- **Uninstall protection (opt-in)** — while a lock session is active, blocks uninstall entry points (Settings App info, the installer's uninstall confirmation, app-store uninstall sheets, and launcher long-press/drag uninstall) and the Device admin/Accessibility settings screens. It backs out of the screen first; if the screen survives, it locks the phone. Installing and updating apps is not affected. Requires accessibility and device admin.
 - **No network access** — no INTERNET permission and no analytics.
 - **Debug builds only** — the debug build also has a **Debug: exit this lock now** button. Release builds do not include it.
 
@@ -33,8 +36,8 @@ Keep Me Out is a small, personal Android app that helps you use your phone less 
 - Special access/permissions:
   - Notifications
   - Display over other apps (also used as the countdown fallback)
-  - Accessibility service (recommended; used for locking, foreground-app detection and the countdown overlay. It reads only the foreground app package to enforce the whitelist; it does not read screen content.)
-  - Device admin (optional fallback for locking; may require PIN/pattern/password)
+  - Accessibility service (recommended; used for locking, foreground-app detection, the countdown overlay and uninstall protection. It reads only the foreground app package for normal whitelist enforcement; only on uninstall or protection screens does it read on-screen text.)
+  - Device admin (optional fallback for locking; required when uninstall protection is enabled. While active, Android blocks uninstall, force stop and clear data — all day, not only during lock sessions. May require PIN/pattern/password.)
   - Battery optimization whitelist (recommended)
 - Exact alarms: the app declares `USE_EXACT_ALARM`, intended for personal sideloading. It is granted at install and is not user-revocable.
 
@@ -68,11 +71,12 @@ Open the app and complete the rows in **Setup**:
 1. **Notifications** — allow notifications.
 2. **Display over other apps** — used as the fallback for the floating countdown.
 3. **Secure lock screen** — set a PIN, pattern, or password.
-4. **Accessibility** — enable **Keep Me Out Screen Lock**. It identifies the foreground app package to enforce the whitelist; it does not read screen content. On Android 13+, if restricted settings appears, allow restricted settings from the app info menu first.
-5. **Device admin** (optional fallback) — note that it can require a PIN/pattern/password on every unlock.
+4. **Accessibility** — enable **Keep Me Out Screen Lock**. It identifies the foreground app package to enforce the whitelist and reads screen text only on uninstall/protection screens. On Android 13+, if restricted settings appears, allow restricted settings from the app info menu first.
+5. **Device admin** (optional fallback; required for uninstall protection) — note that it can require a PIN/pattern/password on every unlock.
 6. **Battery optimization** — add the app to the whitelist. On Xiaomi/Redmi, OPPO/OnePlus, vivo and similar devices, also allow autostart or background activity.
 7. **Exact alarms** — normally available automatically; the app checks and reports any problem.
 8. **Emergency whitelist** — choose the apps, set the duration, and decide whether to limit the total duration. On some OEM ROMs also allow **background pop-up** so the whitelist page can reopen reliably.
+9. **Uninstall protection** — turn on **Prevent uninstall during locks** in the Protection section. It needs both accessibility and device admin; while a lock session is active, uninstall screens are intercepted and installs stay allowed.
 
 For the first test, use short values: pre-lock **10 s**, grace **5 s**, and lock now **1 minute**.
 
@@ -87,6 +91,8 @@ For the first test, use short values: pre-lock **10 s**, grace **5 s**, and lock
 5. Each unlock grants the grace period and opens the whitelist page.
 6. Tap a whitelisted app to use it. Leaving it returns to the whitelist page; the grace countdown continues and the phone locks again when it ends.
 7. During a session, the notification's **Whitelist apps** action reopens the whitelist page.
+
+If you postpone a **Lock now** countdown, the floating countdown is hidden for a while. A lock-now session can still be cancelled during that time from the status card or the notification; a scheduled lock only offers cancellation when its countdown appears again.
 
 ### Emergency whitelist
 
@@ -104,6 +110,8 @@ For the first test, use short values: pre-lock **10 s**, grace **5 s**, and lock
 - If the end time is earlier than the start time, the window ends on the next day.
 - A warning appears `preLockSeconds` before the start; the phone locks at the start time.
 - During the warning, **Cancel this lock** skips that occurrence; the schedule remains.
+- During the warning, **Postpone N min** (also available from the notification) pushes the lock back. The countdown disappears and reappears before the new time; the session still ends at the original end time.
+- If the schedule is turned on again while its time window is already running, the countdown starts immediately.
 - A one-time schedule is removed after its end, or immediately if its only occurrence is cancelled/exited.
 
 ### Language
@@ -119,7 +127,7 @@ Tap **Language** and choose **中文** or **English**. The choice is stored by A
   - **Limit total duration off**: each unlock gives a fresh duration. Leaving and re-entering an app during the same unlock continues the remaining time.
   - **Limit total duration on**: one cumulative duration for the entire lock session. It continues across unlocks, and when it is exhausted, entering a whitelisted app locks the phone again.
 - The countdown is drawn with `TYPE_ACCESSIBILITY_OVERLAY` when the accessibility service is connected, so it stays visible over apps that hide ordinary overlays. Without accessibility, the normal overlay is used and may be hidden by the phone/contacts app.
-- The accessibility service only reads the foreground app package to enforce the whitelist; it does not read screen content.
+- The accessibility service reads only the foreground app package for normal whitelist enforcement. When uninstall protection is enabled, it additionally reads on-screen text on Settings, installer, app-store and launcher windows to distinguish uninstall from install.
 - At the end time, the app stops re-locking but **cannot unlock the phone automatically**. Unlock it normally.
 - Once locked, changing or deleting schedules/settings does not shorten the current session.
 - One-time schedules are cleaned from both saved data and the task list.
@@ -128,7 +136,9 @@ Tap **Language** and choose **中文** or **English**. The choice is stored by A
 
 ## Known limitations
 
-- This is a personal self-control tool. It does not resist uninstalling the app, disabling permissions, or Force Stop.
+- This is a personal self-control tool. Without uninstall protection enabled, it does not resist uninstalling the app, disabling permissions, or Force Stop.
+- Uninstall protection is a speed bump, not a security boundary. It is bypassed by safe mode, ADB (`dpm remove-active-admin` then `pm uninstall`), disabling accessibility over ADB, root, or a factory reset. Some OEM installers do not expose node text; the guard then fails open so installs are never blocked.
+- While device admin is active, Android blocks uninstall, force stop and clear data **all day**, not only during lock sessions. Deactivation cannot be prevented — the app can only show a warning.
 - Device admin mode may require a PIN/pattern/password on each unlock and may disable fingerprint for that unlock.
 - `USE_EXACT_ALARM` fits personal sideloading. Google Play restricts it to alarm clock/timer/calendar use cases; for Play distribution, switch to `SCHEDULE_EXACT_ALARM` with a user grant.
 - OEM battery managers can kill background services. Whitelist the app and enable autostart.
@@ -152,9 +162,12 @@ app/src/main/java/com/me/keepmeout/
   schedule/AlarmScheduler.kt      Exact warning/start/end alarms
   service/LockService.kt          Foreground service and lock/whitelist state machine
   service/LockAccessibilityService.kt  Lock action, foreground app detection, accessibility overlay
-  admin/LockDeviceAdminReceiver.kt
+  service/UninstallGuard.kt       Pure uninstall-screen classification rules
+  service/UninstallGuardController.kt  Accessibility interception and lock escalation
+  admin/LockDeviceAdminReceiver.kt     Device admin warnings and tamper recording
   ui/OverlayController.kt         Fallback floating countdown
   ui/NotificationController.kt    Foreground notification and actions
+  ui/ProtectionNotifier.kt        Alerts when protection is disabled during a lock
 ```
 
 ## Tests
@@ -163,7 +176,7 @@ app/src/main/java/com/me/keepmeout/
 ./gradlew testDebugUnitTest
 ```
 
-Unit tests cover daily/weekly windows, overnight windows, one-time schedules, overlap, pre-lock boundaries, cancellation suppression, `enabledAt`, committed sessions, manual windows, and one-time cleanup.
+Unit tests cover daily/weekly windows, overnight windows, one-time schedules, overlap, pre-lock boundaries, cancellation suppression, `enabledAt`, committed sessions, manual windows, one-time cleanup, and uninstall-screen classification (install allowed, uninstall blocked, device-admin/accessibility screens blocked).
 
 ## License
 

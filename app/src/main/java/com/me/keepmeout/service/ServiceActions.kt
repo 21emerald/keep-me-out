@@ -4,6 +4,7 @@ object ServiceActions {
     const val ACTION_RECONCILE = "com.me.keepmeout.action.RECONCILE"
     const val ACTION_START_MANUAL = "com.me.keepmeout.action.START_MANUAL"
     const val ACTION_CANCEL_WARNING = "com.me.keepmeout.action.CANCEL_WARNING"
+    const val ACTION_POSTPONE_WARNING = "com.me.keepmeout.action.POSTPONE_WARNING"
     const val ACTION_EXIT_LOCK_SESSION = "com.me.keepmeout.action.EXIT_LOCK_SESSION"
     const val ACTION_GRACE_EXPIRED = "com.me.keepmeout.action.GRACE_EXPIRED"
     const val ACTION_STATE_CHANGED = "com.me.keepmeout.action.STATE_CHANGED"

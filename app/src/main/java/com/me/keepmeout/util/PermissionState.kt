@@ -13,6 +13,7 @@ import android.os.PowerManager
 import android.provider.Settings
 import com.me.keepmeout.R
 import com.me.keepmeout.admin.LockDeviceAdminReceiver
+import com.me.keepmeout.data.AppPrefs
 import com.me.keepmeout.service.LockAccessibilityService
 
 object PermissionState {
@@ -69,9 +70,20 @@ object PermissionState {
     fun hasLockMethod(context: Context): Boolean =
         accessibilityEnabled(context) || deviceAdminActive(context)
 
+    fun protectionEnabled(context: Context): Boolean = AppPrefs(context).uninstallProtection
+
     fun missingRequired(context: Context): List<String> = buildList {
         if (!secureLockScreen(context)) add(context.getString(R.string.permission_secure))
-        if (!hasLockMethod(context)) {
+        if (protectionEnabled(context)) {
+            // The guard needs accessibility; device admin supplies the system-level
+            // uninstall/force-stop/clear-data block.
+            if (!accessibilityEnabled(context)) {
+                add(context.getString(R.string.permission_accessibility))
+            }
+            if (!deviceAdminActive(context)) {
+                add(context.getString(R.string.permission_device_admin))
+            }
+        } else if (!hasLockMethod(context)) {
             add("${context.getString(R.string.permission_accessibility)} / ${context.getString(R.string.permission_device_admin)}")
         }
         if (!overlayGranted(context)) add(context.getString(R.string.permission_overlay))

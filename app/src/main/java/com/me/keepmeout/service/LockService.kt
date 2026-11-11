@@ -20,6 +20,7 @@ import android.os.PowerManager
 import android.os.SystemClock
 import android.provider.Settings
 import android.util.Log
+import android.widget.Toast
 import com.me.keepmeout.BuildConfig
 import com.me.keepmeout.R
 import com.me.keepmeout.WhitelistHomeActivity
@@ -272,6 +273,8 @@ class LockService : Service() {
 
             ServiceActions.ACTION_CANCEL_WARNING -> cancelWarning()
 
+            ServiceActions.ACTION_POSTPONE_WARNING -> postponeWarning()
+
             ServiceActions.ACTION_EXIT_LOCK_SESSION -> exitLockSession()
 
             ServiceActions.ACTION_GRACE_EXPIRED -> {
@@ -335,6 +338,7 @@ class LockService : Service() {
         prefs.pruneSuppressed(now)
         if ((prefs.manualEndMillis ?: Long.MAX_VALUE) <= now) prefs.clearManual()
         if ((prefs.committedEndMillis ?: Long.MAX_VALUE) <= now) prefs.clearCommitted()
+        adoptReenabledSchedule(now, zone, schedules)
 
         val snapshot = ScheduleCalculator.snapshot(
             schedules = schedules,
@@ -472,12 +476,22 @@ class LockService : Service() {
         val end = start + minutes * 60_000L
         prefs.manualStartMillis = start
         prefs.manualEndMillis = end
+        prefs.postponeFromManual = true
         prefs.clearCommitted()
         lastError = ""
         reconcile()
     }
 
     private fun cancelWarning() {
+        if (canCancelPostponedManualLock()) {
+            // A postponed "lock now" countdown is hidden; cancel the lock entirely.
+            prefs.clearManual()
+            lastError = ""
+            hideOverlay()
+            cancelGrace()
+            reconcile()
+            return
+        }
         if (phase != LockPhase.WARNING) {
             reconcile()
             return
@@ -499,6 +513,88 @@ class LockService : Service() {
         cancelGrace()
         hideOverlay()
         reconcile()
+    }
+
+    /**
+     * Push the pending lock back by the configured number of minutes. The occurrences
+     * that triggered this warning are suppressed and replaced by a manual window that
+     * starts later but keeps the original end time. This hides the countdown until
+     * pre-lock seconds before the new start, when the warning appears again.
+     */
+    private fun postponeWarning() {
+        if (phase != LockPhase.WARNING) {
+            // The service may have been restarted while the warning was pending.
+            reconcile()
+            if (phase != LockPhase.WARNING) return
+        }
+        val snapshot = lastSnapshot
+        val warningWindows = snapshot?.warningWindows.orEmpty()
+        if (snapshot == null || warningWindows.isEmpty()) {
+            reconcile()
+            return
+        }
+        val now = System.currentTimeMillis()
+        val minutes = prefs.postponeMinutes
+        val scheduleStarts = warningWindows
+            .filter { it.scheduleId != ScheduleCalculator.MANUAL_ID }
+            .mapTo(LinkedHashSet()) { it.startMillis }
+        if (scheduleStarts.isNotEmpty()) {
+            prefs.addSuppressedStarts(scheduleStarts)
+            // This lock came from a scheduled task; it cannot be cancelled while the
+            // countdown is hidden (the task's own occurrence was suppressed instead).
+            prefs.postponeFromManual = false
+        }
+        // Move the scheduled moment back by N minutes (not N minutes from now), so a
+        // postpone tapped early in the countdown still delays the lock by N minutes.
+        val scheduledStart = maxOf(snapshot.warningStartMillis ?: now, now)
+        val newStart = scheduledStart + minutes * 60_000L
+        // Keep the scheduled end; if the window is about to end, still lock long enough
+        // for the postponement to mean something instead of silently skipping it.
+        val newEnd = maxOf(
+            snapshot.warningWindowEndMillis ?: (newStart + 60_000L),
+            newStart + 60_000L,
+        )
+        prefs.manualStartMillis = newStart
+        prefs.manualEndMillis = newEnd
+        phase = LockPhase.IDLE
+        warningStartMillis = 0L
+        warningWindowStarts = emptySet()
+        cancelGrace()
+        hideOverlay()
+        lastError = ""
+        Toast.makeText(
+            this,
+            getString(R.string.postpone_applied, minutes),
+            Toast.LENGTH_SHORT,
+        ).show()
+        reconcile()
+    }
+
+    /**
+     * A schedule enabled while its own occurrence is already running used to stay idle
+     * until the next occurrence. Turn that into an immediate countdown that locks until
+     * the end of the current occurrence.
+     */
+    private fun adoptReenabledSchedule(now: Long, zone: ZoneId, schedules: List<Schedule>) {
+        if (phase != LockPhase.IDLE) return
+        // A manual window (lock now / a postponed lock) already owns the next lock.
+        if (prefs.manualStartMillis != null) return
+        val suppressed = prefs.suppressedStarts()
+        val adopted = schedules.firstOrNull { schedule ->
+            if (!schedule.enabled) return@firstOrNull false
+            val window = schedule.windowContaining(now, zone) ?: return@firstOrNull false
+            val (start, end) = window
+            end > now &&
+                start < schedule.enabledAtMillis &&
+                schedule.enabledAtMillis <= now &&
+                start !in suppressed
+        } ?: return
+        val (start, end) = adopted.windowContaining(now, zone) ?: return
+        val newStart = now + prefs.preLockSeconds * 1000L
+        prefs.addSuppressedStarts(listOf(start))
+        prefs.manualStartMillis = newStart
+        prefs.manualEndMillis = maxOf(end, newStart + 60_000L)
+        Log.d(TAG, "schedule ${adopted.id} enabled inside its window; countdown to lock")
     }
 
     /**
@@ -784,17 +880,35 @@ class LockService : Service() {
         hideOverlay()
     }
 
+    /**
+     * Called by the uninstall guard when a dangerous screen survived a back action.
+     * Returns false when no protected session is active so the caller can fall back
+     * to a direct GLOBAL_ACTION_LOCK_SCREEN.
+     */
+    fun lockFromGuard(): Boolean {
+        if (!prefs.isProtectionSessionActive(System.currentTimeMillis())) return false
+        // During the pre-lock warning the session has not started yet; back out of the
+        // dangerous screen instead of locking early.
+        if (prefs.phase == LockPhase.WARNING) return false
+        performLock()
+        render()
+        return true
+    }
+
     private fun render() {
         val now = System.currentTimeMillis()
         when (phase) {
             LockPhase.IDLE -> {
                 hideOverlay()
-                notifications.showIdle(nextStartMillis.takeIf { it > now })
+                notifications.showIdle(
+                    nextStartMillis.takeIf { it > now },
+                    canCancelPostponedManualLock(now),
+                )
             }
 
             LockPhase.WARNING -> {
                 if (isScreenUnlocked()) showWarningOverlay() else hideOverlay()
-                notifications.showWarning(warningStartMillis)
+                notifications.showWarning(warningStartMillis, prefs.postponeMinutes)
             }
 
             LockPhase.LOCKED -> {
@@ -868,7 +982,11 @@ class LockService : Service() {
             .toInt()
         showOverlay(
             getString(R.string.overlay_warning_title, seconds),
-            getString(R.string.overlay_warning_subtitle, TimeText.full(this, warningStartMillis)),
+            getString(
+                R.string.overlay_warning_subtitle_postpone,
+                TimeText.full(this, warningStartMillis),
+                prefs.postponeMinutes,
+            ),
         )
     }
 
@@ -995,6 +1113,17 @@ class LockService : Service() {
             stopSelf()
         }
     }
+
+    /**
+     * A "lock now" session that was postponed keeps a manual window pending while its
+     * countdown is hidden. Unlike a postponed scheduled task, this can still be
+     * cancelled from the app or the notification.
+     */
+    private fun canCancelPostponedManualLock(now: Long = System.currentTimeMillis()): Boolean =
+        phase == LockPhase.IDLE &&
+            prefs.postponeFromManual &&
+            (prefs.manualStartMillis ?: 0L) > now &&
+            (prefs.manualEndMillis ?: 0L) > now
 
     private fun isSessionActive(now: Long): Boolean {
         val committed = prefs.committedEndMillis ?: 0L

@@ -22,14 +22,24 @@ class LockAccessibilityService : AccessibilityService() {
     private var overlayView: View? = null
     private var overlayTitle: TextView? = null
     private var overlaySubtitle: TextView? = null
+    private var uninstallGuard: UninstallGuardController? = null
 
     override fun onServiceConnected() {
         super.onServiceConnected()
+        uninstallGuard = UninstallGuardController(this)
         instance = this
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
+        if (event == null) return
+        val type = event.eventType
+        if (type != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED &&
+            type != AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED
+        ) {
+            return
+        }
+        if (uninstallGuard?.onAccessibilityEvent(event) == true) return
+        if (type != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         val foregroundPackage = event.packageName?.toString() ?: return
         lastForegroundPackage = foregroundPackage
         LockService.instance?.onForegroundPackage(foregroundPackage)
@@ -38,6 +48,7 @@ class LockAccessibilityService : AccessibilityService() {
     override fun onInterrupt() = Unit
 
     override fun onUnbind(intent: Intent?): Boolean {
+        uninstallGuard?.onUnbindIfSessionActive()
         hideStatusOverlay()
         if (instance === this) instance = null
         return super.onUnbind(intent)
@@ -45,6 +56,7 @@ class LockAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         hideStatusOverlay()
+        uninstallGuard = null
         if (instance === this) instance = null
         super.onDestroy()
     }

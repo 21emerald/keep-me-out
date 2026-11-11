@@ -19,6 +19,8 @@ object ScheduleCalculator {
         val activeWindowStarts: Set<Long>,
         val warningStartMillis: Long?,
         val warningWindowStarts: Set<Long>,
+        val warningWindows: List<Window>,
+        val warningWindowEndMillis: Long?,
         val nextWarningMillis: Long?,
         val nextStartMillis: Long?,
         val nextEndMillis: Long?,
@@ -82,11 +84,13 @@ object ScheduleCalculator {
 
         var warningStart: Long? = null
         val warningStarts = LinkedHashSet<Long>()
+        val warningWindows = ArrayList<Window>()
         if (!active) {
             futureWindows
                 .filter { it.startMillis - preLockMillis <= nowMillis }
                 .sortedBy { it.startMillis }
                 .forEach {
+                    warningWindows += it
                     warningStarts += it.startMillis
                     if (warningStart == null) warningStart = it.startMillis
                 }
@@ -110,6 +114,8 @@ object ScheduleCalculator {
             activeWindowStarts = activeWindows.mapTo(LinkedHashSet()) { it.startMillis },
             warningStartMillis = warningStart,
             warningWindowStarts = warningStarts,
+            warningWindows = warningWindows,
+            warningWindowEndMillis = warningWindows.maxOfOrNull { it.endMillis },
             nextWarningMillis = nextWarning,
             nextStartMillis = nextStart,
             nextEndMillis = nextEnd,
@@ -131,5 +137,6 @@ object ScheduleCalculator {
         destination += Window(schedule.id, start, end)
     }
 
-    private const val MANUAL_ID = -1L
+    /** Schedule id used for the "lock now" and "postponed lock" windows. */
+    const val MANUAL_ID = -1L
 }

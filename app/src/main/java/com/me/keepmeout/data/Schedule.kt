@@ -3,6 +3,7 @@ package com.me.keepmeout.data
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.DayOfWeek
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
@@ -45,6 +46,22 @@ data class Schedule(
     fun onceWindow(zone: ZoneId): Pair<Long, Long>? {
         if (type != ScheduleType.ONCE) return null
         return date?.let { windowFor(it, zone) }
+    }
+
+    /**
+     * The occurrence covering [millis], if any. Weekly tasks may have started on the
+     * previous day (an overnight window), so both today and yesterday are checked.
+     */
+    fun windowContaining(millis: Long, zone: ZoneId): Pair<Long, Long>? {
+        val date = Instant.ofEpochMilli(millis).atZone(zone).toLocalDate()
+        val candidates = when (type) {
+            ScheduleType.WEEKLY -> listOf(date.minusDays(1), date)
+            ScheduleType.ONCE -> listOfNotNull(this.date)
+        }
+        return candidates.asSequence()
+            .filter { type == ScheduleType.ONCE || days.contains(it.dayOfWeek) }
+            .mapNotNull { windowFor(it, zone) }
+            .firstOrNull { (start, end) -> start <= millis && millis < end }
     }
 
     fun toJson(): JSONObject = JSONObject().apply {

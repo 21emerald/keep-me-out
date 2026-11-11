@@ -3,9 +3,9 @@
     <string name="app_name">Keep Me Out</string>
 
     <string name="accessibility_service_label">Keep Me Out Screen Lock</string>
-    <string name="accessibility_description">Performs the system lock-screen action at the configured time and identifies the foreground app to enforce the whitelist. It does not read screen content.</string>
+    <string name="accessibility_description">Performs the system lock-screen action at the configured time and identifies the foreground app to enforce the whitelist. It reads on-screen text only on uninstall or protection screens; otherwise it reads only the foreground package name.</string>
     <string name="device_admin_label">Keep Me Out Device Admin</string>
-    <string name="device_admin_description">Fallback when the accessibility lock is unavailable. It only uses the force-lock policy.</string>
+    <string name="device_admin_description">Fallback for the accessibility lock and source of the force-lock capability. While active, Android blocks uninstalling, force-stopping and clearing this app\'s data.</string>
 
     <string name="main_title">Keep Me Out</string>
     <string name="main_subtitle">Lock your phone for the time you choose.</string>
@@ -17,9 +17,13 @@
 
     <string name="section_settings">Lock settings</string>
     <string name="pre_lock_label">Countdown before locking</string>
+    <string name="postpone_label">Postpone countdown by</string>
     <string name="grace_label">Allowed use after unlock</string>
     <string name="seconds_suffix">seconds</string>
     <string name="save_settings">Save settings</string>
+    <string name="postpone_action">Postpone %1$d min</string>
+    <string name="postpone_action_default">Postpone lock</string>
+    <string name="postpone_applied">Lock postponed by %1$d min</string>
 
     <string name="section_whitelist">Emergency whitelist</string>
     <string name="whitelist_apps_label">App whitelist</string>
@@ -40,6 +44,28 @@
     <string name="whitelist_home_launch_failed">Could not open this app</string>
     <string name="invalid_whitelist_duration">Whitelist duration must be between 1 second and 24 hours</string>
     <string name="debug_exit_lock">Debug: exit this lock now</string>
+
+    <string name="section_protection">Uninstall protection</string>
+    <string name="protection_switch_label">Prevent uninstall during locks</string>
+    <string name="protection_note">During a lock session, blocks uninstall entry points (App info, installer confirmation, app store, launcher long-press or drag-to-uninstall) and Device admin/Accessibility settings. Installing and updating apps is not affected. Requires accessibility and device admin.</string>
+    <string name="protection_frozen_note">Uninstall protection cannot be changed during a lock session.</string>
+    <string name="protection_status_off">Uninstall protection is off</string>
+    <string name="protection_status_on">Uninstall protection is on: device admin is active, so Android blocks uninstall, force stop and clear data.</string>
+    <string name="protection_status_admin_off">Device admin is off, so locks cannot start. Enable it in Setup.</string>
+    <string name="protection_status_accessibility_off">Accessibility is off, so screen interception is unavailable. Enable it in Setup.</string>
+    <string name="protection_tamper">Last protection change: %1$s</string>
+    <string name="protection_tamper_admin">Device admin was deactivated</string>
+    <string name="protection_tamper_accessibility">Accessibility service was disabled</string>
+    <string name="guard_toast_uninstall">Apps cannot be uninstalled during a lock session</string>
+    <string name="guard_toast_protection">Uninstall protection cannot be disabled during a lock session</string>
+    <string name="admin_disable_warning_session">A lock session is active. Deactivating device admin lets Android uninstall this app again and can bypass this lock. Deactivate anyway?</string>
+    <string name="admin_disable_warning_idle">After deactivation, Android will allow uninstalling this app and uninstall protection during locks stops working. Deactivate anyway?</string>
+    <string name="protection_channel_name">Uninstall protection</string>
+    <string name="protection_channel_description">Alerts when device admin or the accessibility guard is disabled during a lock</string>
+    <string name="protection_admin_disabled_title">Uninstall protection was disabled</string>
+    <string name="protection_admin_disabled_text">Device admin was deactivated. Tap to enable it again.</string>
+    <string name="protection_guard_lost_title">Uninstall guard stopped</string>
+    <string name="protection_guard_lost_text">Accessibility was disabled during a lock session.</string>
 
     <string name="section_language">Language</string>
     <string name="language_current">Language: %1$s</string>
@@ -92,7 +118,7 @@
     <string name="permission_open">Enable</string>
     <string name="permission_fix">Fix</string>
     <string name="permission_settings">Settings</string>
-    <string name="device_admin_explanation">Fallback when the accessibility lock is unavailable. Enabling it can require a PIN, pattern, or password on every unlock.</string>
+    <string name="device_admin_explanation">Fallback for the accessibility lock and source of the force-lock capability. While active, Android blocks uninstalling, force-stopping and clearing this app\'s data (all day, not only during lock sessions). Enabling it can require a PIN, pattern, or password on every unlock.</string>
     <string name="permission_required">Missing required settings: %1$s</string>
     <string name="permission_configured">Setup complete.</string>
     <string name="settings_saved">Settings saved</string>
@@ -111,6 +137,7 @@
     <string name="notification_no_tasks">No enabled schedules</string>
     <string name="notification_warning_title">Locking soon</string>
     <string name="notification_warning_text">Locks at %1$s</string>
+    <string name="notification_postpone">Postpone %1$d min</string>
     <string name="notification_locked_title">Locked</string>
     <string name="notification_locked_text">Locked until %1$s</string>
     <string name="notification_grace_title">Grace period</string>
@@ -122,6 +149,7 @@
     <string name="notification_error_text">Check the accessibility or device admin permission</string>
     <string name="overlay_warning_title">Locking in %1$d sec</string>
     <string name="overlay_warning_subtitle">Starts at %1$s</string>
+    <string name="overlay_warning_subtitle_postpone">Starts at %1$s · postpone %2$d min in the notification</string>
     <string name="overlay_grace_title">Re-locking in %1$d sec</string>
     <string name="overlay_grace_subtitle">%1$s left in this lock</string>
     <string name="overlay_whitelist_title">Whitelist %1$s left</string>

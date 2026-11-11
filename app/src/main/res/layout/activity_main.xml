@@ -55,13 +55,31 @@
                 android:textColor="?android:attr/textColorSecondary"
                 android:textSize="14sp" />
 
-            <Button
-                android:id="@+id/cancelWarningButton"
-                android:layout_width="wrap_content"
+            <LinearLayout
+                android:id="@+id/warningActionsRow"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
-                android:text="@string/cancel_this_warning"
-                android:visibility="gone" />
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <Button
+                    android:id="@+id/postponeWarningButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/postpone_action_default"
+                    android:visibility="gone" />
+
+                <Button
+                    android:id="@+id/cancelWarningButton"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:layout_weight="1"
+                    android:text="@string/cancel_this_warning"
+                    android:visibility="gone" />
+            </LinearLayout>
 
             <Button
                 android:id="@+id/exitLockButton"
@@ -148,6 +166,42 @@
                 android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
                 android:text="@string/seconds_suffix"
+                android:textColor="?android:attr/textColorSecondary" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/postpone_label"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="15sp" />
+
+            <EditText
+                android:id="@+id/postponeInput"
+                android:layout_width="72dp"
+                android:layout_height="wrap_content"
+                android:digits="0123456789"
+                android:gravity="end"
+                android:importantForAutofill="no"
+                android:inputType="number"
+                android:maxLength="4"
+                android:selectAllOnFocus="true"
+                android:text="5"
+                android:textSize="16sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="@string/minutes_suffix"
                 android:textColor="?android:attr/textColorSecondary" />
         </LinearLayout>
 
@@ -291,6 +345,65 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="6dp"
             android:text="@string/whitelist_frozen_note"
+            android:textColor="?android:attr/textColorSecondary"
+            android:textSize="12sp" />
+
+        <TextView
+            style="@style/SectionTitle"
+            android:text="@string/section_protection" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="@string/protection_switch_label"
+                android:textColor="?android:attr/textColorPrimary"
+                android:textSize="15sp" />
+
+            <Switch
+                android:id="@+id/protectionSwitch"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/protectionNote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/protection_note"
+            android:textColor="?android:attr/textColorSecondary"
+            android:textSize="12sp" />
+
+        <TextView
+            android:id="@+id/protectionStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:textColor="?android:attr/textColorSecondary"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/protectionTamper"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:textColor="@color/danger"
+            android:textSize="12sp"
+            android:visibility="gone" />
+
+        <TextView
+            android:id="@+id/protectionFrozenNote"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:text="@string/protection_frozen_note"
             android:textColor="?android:attr/textColorSecondary"
             android:textSize="12sp" />
 

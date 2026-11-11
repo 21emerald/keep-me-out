@@ -198,6 +198,30 @@ class ScheduleCalculatorTest {
     }
 
     @Test
+    fun warningSnapshotReportsWindowEnd() {
+        val task = weekly(allDays(), 23 * 60, 7 * 60)
+        val warning = snapshot(task, at(date, 22, 59, 40))
+        assertEquals(at(date.plusDays(1), 7, 0), warning.warningWindowEndMillis)
+        assertEquals(setOf(at(date, 23, 0)), warning.warningWindows.map { it.startMillis }.toSet())
+    }
+
+    @Test
+    fun windowContainingFindsOvernightOccurrence() {
+        val task = weekly(setOf(DayOfWeek.SATURDAY), 23 * 60, 7 * 60)
+
+        assertEquals(
+            at(date, 23, 0) to at(date.plusDays(1), 7, 0),
+            task.windowContaining(at(date.plusDays(1), 6, 0), zone),
+        )
+        assertEquals(
+            at(date, 23, 0) to at(date.plusDays(1), 7, 0),
+            task.windowContaining(at(date, 23, 30), zone),
+        )
+        assertNull(task.windowContaining(at(date.plusDays(1), 8, 0), zone))
+        assertNull(task.windowContaining(at(date, 22, 59), zone))
+    }
+
+    @Test
     fun newlyEnabledTaskDoesNotStartMidWindow() {
         val late = at(date, 23, 30)
         val task = weekly(allDays(), 23 * 60, 7 * 60).copy(enabledAtMillis = late)
